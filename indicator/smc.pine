@@ -1,0 +1,1385 @@
+//@version=5
+indicator(title = "Mazada SMC v3 — Sniper Entry", shorttitle = "Mazada v3", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
+
+// =========================================================================
+// 1. EMA & SIGMA BANDS CALCULATIONS & PLOTS
+// =========================================================================
+emaLen       = 200
+fastLen      = 20
+slowLen      = 50
+maxEmaGap    = 0.01  // 1% default
+
+ema200   = ta.ema(close, emaLen)
+emaFast  = ta.ema(close, fastLen)
+emaSlow  = ta.sma(close, slowLen)
+hh = ta.highest(close, 50)
+
+ema200Slope = (ema200 - ema200[40]) / ema200[40]
+isUptrend   = ema200Slope > 0 and emaFast > ema200
+isDowntrend = ema200Slope < 0 and emaFast < ema200
+low20 = ta.lowest(low, 20)
+priceInBuyerZone = close <= low20
+
+// === EMA Gap Filter ===
+emaGap = emaFast - emaSlow
+
+// =========================================================================
+// 1A. TREND ACCELERATION (2nd Derivative / Finite Difference)
+// Report.txt §1: "Trend Velocity" = First Derivative (Slope)
+// Report.txt §3: "Slope Analysis" = Chain Rule for CHoCH early detection
+// Implementation: Forward Difference d²P/dt² ≈ Slope(t) - Slope(t-1)
+// =========================================================================
+ema200Accel = ta.change(ema200Slope)  // 2nd derivative: acceleration of EMA200 trend
+
+// Classify momentum state: Accelerating, Decelerating, or Neutral
+string momentum_state = ema200Accel > 0 and ema200Slope > 0 ? "⬆ Accel" : ema200Accel < 0 and ema200Slope < 0 ? "⬇ Accel" : ema200Accel > 0 and ema200Slope < 0 ? "⬆ Decel" : ema200Accel < 0 and ema200Slope > 0 ? "⬇ Decel" : "Neutral"
+
+// Early CHoCH Warning: slope still negative but acceleration turned positive
+early_choch_bull = ema200Slope < 0 and ema200Accel > 0
+early_choch_bear = ema200Slope > 0 and ema200Accel < 0
+
+// === Sigma Bands around EMA200 ===
+zLen   = 200
+zK     = 2.0
+stdev  = ta.stdev(close, zLen)
+upperBand = ema200 + zK * stdev
+lowerBand = ema200 - zK * stdev
+
+// =========================================================================
+// 1B. VOLATILITY STATE DETECTION (σ Expansion/Contraction)
+// Report.txt §4: "Volatility Expansion" via Implied Volatility / Kurtosis
+// Implementation: Compare current σ against its own moving average
+// =========================================================================
+stdev_avg = ta.sma(stdev, 50)          // Mean volatility over 50 bars
+vol_ratio = stdev / stdev_avg           // Ratio: >1 = expanding, <1 = contracting
+vol_expanding   = vol_ratio > 1.3       // Significant expansion threshold
+vol_contracting = vol_ratio < 0.7       // Significant contraction threshold
+
+// Sigma Band touch alerts
+price_at_upper = high >= upperBand
+price_at_lower = low <= lowerBand
+
+// =========================================================================
+// 1C. TAYLOR-PROJECTED PRICE LINE (Finite Difference Approximation)
+// Report.txt §5: Taylor Series P(x+h) ≈ P(x) + hP'(x) + (h²/2)P''(x)
+// Report.txt §5: Forward/Central Finite Differences for discrete data
+// Implementation: 2nd-order Taylor expansion using bar-by-bar differences
+// =========================================================================
+// First derivative (Forward Difference): P'(x) ≈ P(x) - P(x-1)
+price_d1 = close - close[1]
+// Second derivative (Central Difference): P''(x) ≈ P(x) - 2P(x-1) + P(x-2)
+price_d2 = close - 2 * close[1] + close[2]
+// Taylor projection for next bar: P(x+1) ≈ P(x) + P'(x) + P''(x)/2
+taylor_proj = close + price_d1 + price_d2 / 2
+// Smoothed projection to reduce noise (EMA of raw projection)
+taylor_smooth = ta.ema(taylor_proj, 5)
+
+// ==== Plot EMAs and Bands ====
+plot(emaFast, color=color.yellow, title="EMA Fast")
+plot(emaSlow, color=color.blue, title="EMA Slow")
+plot(ema200,  title="EMA200", color=color.new(color.white, 0), linewidth=2)
+
+// Sigma Bands with dynamic color based on Volatility State
+color band_color_upper = vol_expanding ? color.new(#ff6d00, 30) : vol_contracting ? color.new(#00e676, 60) : color.new(color.white, 50)
+color band_color_lower = vol_expanding ? color.new(#ff6d00, 30) : vol_contracting ? color.new(#00e676, 60) : color.new(color.white, 50)
+plot(upperBand,  title="+2σ Band", color=band_color_upper, linewidth=2)
+plot(lowerBand,  title="-2σ Band", color=band_color_lower, linewidth=2)
+
+// Fill between sigma bands with volatility-aware color
+fill_upper = plot(upperBand, display=display.none)
+fill_lower = plot(lowerBand, display=display.none)
+fill(fill_upper, fill_lower, color=vol_expanding ? color.new(#ff6d00, 93) : vol_contracting ? color.new(#00e676, 95) : color.new(color.white, 97), title="σ Band Fill")
+
+// Taylor Projected Price Line
+plot(taylor_smooth, title="Taylor Proj", color=color.new(#e040fb, 40), style=plot.style_circles, linewidth=1)
+
+// Momentum State Background (subtle)
+bgcolor(early_choch_bull ? color.new(#00e676, 92) : early_choch_bear ? color.new(#ff5252, 92) : na, title="Early CHoCH Warning")
+
+// (Trend acceleration arrow/label plots removed as requested)
+
+// (Buy/Sell signal engine and plotshapes removed as requested)
+
+
+// =========================================================================
+// 2. SMART MONEY CONCEPTS (SMC) SETTINGS
+// =========================================================================
+color TRANSP_CSS = #ffffff00
+
+// Tooltips
+string blankString = ''
+string MODE_TOOLTIP          = blankString
+string STYLE_TOOLTIP         = blankString
+string COLOR_CANDLES_TOOLTIP = blankString
+string SHOW_INTERNAL         = blankString
+string CONFLUENCE_FILTER     = blankString
+string SHOW_SWING            = blankString
+string SHOW_SWING_POINTS     = blankString
+string SHOW_SWHL_POINTS      = blankString
+string INTERNAL_OB           = blankString
+string SWING_OB              = blankString
+string FILTER_OB             = blankString
+string SHOW_EQHL             = blankString
+string EQHL_BARS             = blankString
+string EQHL_THRESHOLD        = blankString
+string SHOW_FVG              = blankString
+string AUTO_FVG              = blankString
+string FVG_TF                = blankString
+string EXTEND_FVG            = blankString
+string PED_ZONES             = blankString
+
+// General Inputs
+mode = input.string('Historical'
+  , options = ['Historical', 'Present']
+  , group = 'Smart Money Concepts'
+  , tooltip = MODE_TOOLTIP
+  , display = display.none)
+
+style = input.string('Colored'
+  , options = ['Colored', 'Monochrome']
+  , group = 'Smart Money Concepts'
+  , tooltip = STYLE_TOOLTIP
+  , display = display.none)
+
+show_trend = input(false, 'Color Candles'
+  , group = 'Smart Money Concepts'
+  , tooltip = COLOR_CANDLES_TOOLTIP
+  , display = display.none)
+
+// Internal Structure Inputs
+show_internals = input(true, 'Show Internal Structure'
+  , group = 'Real Time Internal Structure'
+  , tooltip = SHOW_INTERNAL
+  , display = display.none)
+
+show_ibull = input.string('All', 'Bullish Structure'
+  , options = ['All', 'BOS', 'CHoCH']
+  , inline = 'ibull'
+  , group = 'Real Time Internal Structure'
+  , display = display.none)
+
+swing_ibull_css = input(#089981, ''
+  , inline = 'ibull'
+  , group = 'Real Time Internal Structure'
+  , display = display.none)
+
+show_ibear = input.string('All', 'Bearish Structure'
+  , options = ['All', 'BOS', 'CHoCH']
+  , inline = 'ibear'
+  , group = 'Real Time Internal Structure'
+  , display = display.none)
+
+swing_ibear_css = input(#f23645, ''
+  , inline = 'ibear'
+  , group = 'Real Time Internal Structure'
+  , display = display.none)
+
+ifilter_confluence = input(false, 'Confluence Filter'
+  , group = 'Real Time Internal Structure'
+  , tooltip = CONFLUENCE_FILTER
+  , display = display.none)
+
+internal_structure_size = input.string('Tiny', 'Internal Label Size'
+  , options = ['Tiny', 'Small', 'Normal']
+  , group = 'Real Time Internal Structure'
+  , display = display.none)
+
+// Swing Structure Inputs
+show_Structure = input(true, 'Show Swing Structure'
+  , group = 'Real Time Swing Structure'
+  , tooltip = SHOW_SWING
+  , display = display.none)
+
+show_bull = input.string('All', 'Bullish Structure'
+  , options = ['All', 'BOS', 'CHoCH']
+  , inline = 'bull'
+  , group = 'Real Time Swing Structure'
+  , display = display.none)
+
+swing_bull_css = input(#089981, ''
+  , inline = 'bull'
+  , group = 'Real Time Swing Structure'
+  , display = display.none)
+
+show_bear = input.string('All', 'Bearish Structure'
+  , options = ['All', 'BOS', 'CHoCH']
+  , inline = 'bear'
+  , group = 'Real Time Swing Structure'
+  , display = display.none)
+
+swing_bear_css = input(#f23645, ''
+  , inline = 'bear'
+  , group = 'Real Time Swing Structure'
+  , display = display.none)
+
+swing_structure_size = input.string('Small', 'Swing Label Size'
+  , options = ['Tiny', 'Small', 'Normal']
+  , group = 'Real Time Swing Structure'
+  , display = display.none)
+
+show_swings = input(false, 'Show Swings Points'
+  , inline = 'swings'
+  , group = 'Real Time Swing Structure'
+  , tooltip = SHOW_SWING_POINTS
+  , display = display.none)
+
+length = input.int(50, ''
+  , minval = 10
+  , inline = 'swings'
+  , group = 'Real Time Swing Structure'
+  , display = display.none)
+
+show_hl_swings = input(true, 'Show Strong/Weak High/Low'
+  , group = 'Real Time Swing Structure'
+  , tooltip = SHOW_SWHL_POINTS
+  , display = display.none)
+
+// Order Blocks Inputs
+show_iob = input(true, 'Internal Order Blocks'
+  , inline = 'iob'
+  , group = 'Order Blocks'
+  , tooltip = INTERNAL_OB
+  , display = display.none)
+
+iob_showlast = input.int(5, ''
+  , minval = 1
+  , inline = 'iob'
+  , group = 'Order Blocks'
+  , display = display.none)
+
+show_ob = input(false, 'Swing Order Blocks'
+  , inline = 'ob'
+  , group = 'Order Blocks'
+  , tooltip = SWING_OB
+  , display = display.none)
+
+ob_showlast = input.int(5, ''
+  , minval = 1
+  , inline = 'ob'
+  , group = 'Order Blocks'
+  , display = display.none)
+
+ob_filter = input.string('Atr', 'Order Block Filter'
+  , options = ['Atr', 'Cumulative Mean Range']
+  , group = 'Order Blocks'
+  , tooltip = FILTER_OB
+  , display = display.none)
+
+ibull_ob_css = input.color(color.new(#3179f5, 80), 'Internal Bullish OB'
+  , group = 'Order Blocks'
+  , display = display.none)
+
+ibear_ob_css = input.color(color.new(#f77c80, 80), 'Internal Bearish OB'
+  , group = 'Order Blocks'
+  , display = display.none)
+
+bull_ob_css = input.color(color.new(#1848cc, 80), 'Bullish OB'
+  , group = 'Order Blocks'
+  , display = display.none)
+
+bear_ob_css = input.color(color.new(#b22833, 80), 'Bearish OB'
+  , group = 'Order Blocks'
+  , display = display.none)
+
+// EQH/EQL Inputs
+show_eq = input(true, 'Equal High/Low'
+  , group = 'EQH/EQL'
+  , tooltip = SHOW_EQHL
+  , display = display.none)
+
+eq_len = input.int(3, 'Bars Confirmation'
+  , minval = 1
+  , group = 'EQH/EQL'
+  , tooltip = EQHL_BARS
+  , display = display.none)
+
+eq_threshold = input.float(0.1, 'Threshold'
+  , minval = 0
+  , maxval = 0.5
+  , step = 0.1
+  , group = 'EQH/EQL'
+  , tooltip = EQHL_THRESHOLD
+  , display = display.none)
+
+eq_size = input.string('Tiny', 'Label Size'
+  , options = ['Tiny', 'Small', 'Normal']
+  , group = 'EQH/EQL'
+  , display = display.none)
+
+// Fair Value Gaps Inputs
+show_fvg = input(false, 'Fair Value Gaps'
+  , group = 'Fair Value Gaps'
+  , tooltip = SHOW_FVG
+  , display = display.none)
+  
+fvg_auto = input(true, "Auto Threshold"
+  , group = 'Fair Value Gaps'
+  , tooltip = AUTO_FVG
+  , display = display.none)
+
+fvg_tf = input.timeframe('', "Timeframe"
+  , group = 'Fair Value Gaps'
+  , tooltip = FVG_TF
+  , display = display.none)
+
+bull_fvg_css = input.color(color.new(#00ff68, 70), 'Bullish FVG'
+  , group = 'Fair Value Gaps'
+  , display = display.none)
+
+bear_fvg_css = input.color(color.new(#ff0008, 70), 'Bearish FVG'
+  , group = 'Fair Value Gaps'
+  , display = display.none)
+
+fvg_extend = input.int(1, "Extend FVG"
+  , minval = 0
+  , group = 'Fair Value Gaps'
+  , tooltip = EXTEND_FVG
+  , display = display.none)
+
+// Daily/Weekly/Monthly Inputs
+show_pdhl = input(false, 'Daily'
+  , inline = 'daily'
+  , group = 'Highs & Lows MTF'
+  , display = display.none)
+
+pdhl_style = input.string('⎯⎯⎯', ''
+  , options = ['⎯⎯⎯', '----', '····']
+  , inline = 'daily'
+  , group = 'Highs & Lows MTF'
+  , display = display.none)
+
+pdhl_css = input(#2157f3, ''
+  , inline = 'daily'
+  , group = 'Highs & Lows MTF'
+  , display = display.none)
+
+show_pwhl = input(false, 'Weekly'
+  , inline = 'weekly'
+  , group = 'Highs & Lows MTF'
+  , display = display.none)
+
+pwhl_style = input.string('⎯⎯⎯', ''
+  , options = ['⎯⎯⎯', '----', '····']
+  , inline = 'weekly'
+  , group = 'Highs & Lows MTF'
+  , display = display.none)
+
+pwhl_css = input(#2157f3, ''
+  , inline = 'weekly'
+  , group = 'Highs & Lows MTF'
+  , display = display.none)
+
+show_pmhl = input(false, 'Monthly'
+  , inline = 'monthly'
+  , group = 'Highs & Lows MTF'
+  , display = display.none)
+
+pmhl_style = input.string('⎯⎯⎯', ''
+  , options = ['⎯⎯⎯', '----', '····']
+  , inline = 'monthly'
+  , group = 'Highs & Lows MTF'
+  , display = display.none)
+
+pmhl_css = input(#2157f3, ''
+  , inline = 'monthly'
+  , group = 'Highs & Lows MTF'
+  , display = display.none)
+
+// Premium/Discount Inputs
+show_sd = input(false, 'Premium/Discount Zones'
+  , group = 'Premium & Discount Zones'
+  , tooltip = PED_ZONES
+  , display = display.none)
+
+premium_css = input.color(#f23645, 'Premium Zone'
+  , group = 'Premium & Discount Zones'
+  , display = display.none)
+
+eq_css = input.color(#b2b5be, 'Equilibrium Zone'
+  , group = 'Premium & Discount Zones'
+  , display = display.none)
+
+discount_css = input.color(#089981, 'Discount Zone'
+  , group = 'Premium & Discount Zones'
+  , display = display.none)
+
+
+// =========================================================================
+// 3. SMART MONEY CONCEPTS (SMC) LOGIC
+// =========================================================================
+n = bar_index
+atr = ta.atr(200)
+cmean_range = ta.cum(high - low) / n
+
+hl() => [high, low]
+get_ohlc() => [close[1], open[1], high, low, high[2], low[2]]
+
+display_Structure(x, y, txt, css, dashed, down, lbl_size) =>
+    structure_line = line.new(x, y, n, y
+      , color = css
+      , style = dashed ? line.style_dashed : line.style_solid)
+
+    structure_lbl = label.new(int(math.avg(x, n)), y, txt
+      , color = TRANSP_CSS
+      , textcolor = css
+      , style = down ? label.style_label_down : label.style_label_up
+      , size = lbl_size)
+
+    if mode == 'Present'
+        line.delete(structure_line[1])
+        label.delete(structure_lbl[1])
+
+swings(len) =>
+    var os = 0
+    upper = ta.highest(len)
+    lower = ta.lowest(len)
+    os := high[len] > upper ? 0 : low[len] < lower ? 1 : os[1]
+    top = os == 0 and os[1] != 0 ? high[len] : 0
+    btm = os == 1 and os[1] != 1 ? low[len] : 0
+    [top, btm]
+
+ob_coord(use_max, loc, target_top, target_btm, target_left, target_type) =>
+    min = 99999999.
+    max = 0.
+    idx = 1
+    ob_threshold = ob_filter == 'Atr' ? atr : cmean_range 
+
+    if use_max
+        for i = 1 to (n - loc)-1
+            if (high[i] - low[i]) < ob_threshold[i] * 2
+                max := math.max(high[i], max)
+                min := max == high[i] ? low[i] : min
+                idx := max == high[i] ? i : idx
+    else
+        for i = 1 to (n - loc)-1
+            if (high[i] - low[i]) < ob_threshold[i] * 2
+                min := math.min(low[i], min)
+                max := min == low[i] ? high[i] : max
+                idx := min == low[i] ? i : idx
+
+    array.unshift(target_top, max)
+    array.unshift(target_btm, min)
+    array.unshift(target_left, time[idx])
+    array.unshift(target_type, use_max ? -1 : 1)
+
+display_ob(boxes, target_top, target_btm, target_left, target_type, show_last, swing, size) =>
+    for i = 0 to math.min(show_last-1, size-1)
+        get_box = array.get(boxes, i)
+        box.set_lefttop(get_box, array.get(target_left, i), array.get(target_top, i))
+        box.set_rightbottom(get_box, array.get(target_left, i), array.get(target_btm, i))
+        box.set_extend(get_box, extend.right)
+
+        color css = na
+        if swing 
+            if style == 'Monochrome'
+                css := array.get(target_type, i) == 1 ? color.new(#b2b5be, 80) : color.new(#5d606b, 80)
+                border_css = array.get(target_type, i) == 1 ? #b2b5be : #5d606b
+                box.set_border_color(get_box, border_css)
+            else
+                css := array.get(target_type, i) == 1 ? bull_ob_css : bear_ob_css
+                box.set_border_color(get_box, css)
+            box.set_bgcolor(get_box, css)
+        else
+            if style == 'Monochrome'
+                css := array.get(target_type, i) == 1 ? color.new(#b2b5be, 80) : color.new(#5d606b, 80)
+            else
+                css := array.get(target_type, i) == 1 ? ibull_ob_css : ibear_ob_css
+            box.set_border_color(get_box, css)
+            box.set_bgcolor(get_box, css)
+
+get_line_style(style_str) =>
+    switch style_str
+        '⎯⎯⎯'  => line.style_solid
+        '----' => line.style_dashed
+        '····' => line.style_dotted
+
+phl(h, l, tf, css) =>
+    var line high_line = line.new(na,na,na,na, xloc = xloc.bar_time, color = css, style = get_line_style(pdhl_style))
+    var label high_lbl = label.new(na,na, xloc = xloc.bar_time, text = str.format('P{0}H', tf), color = TRANSP_CSS, textcolor = css, size = size.small, style = label.style_label_left)
+    var line low_line = line.new(na,na,na,na, xloc = xloc.bar_time, color = css, style = get_line_style(pdhl_style))
+    var label low_lbl = label.new(na,na, xloc = xloc.bar_time, text = str.format('P{0}L', tf), color = TRANSP_CSS, textcolor = css, size = size.small, style = label.style_label_left)
+
+    hy = ta.valuewhen(h != h[1], h, 1)
+    hx = ta.valuewhen(h == high, time, 1)
+    ly = ta.valuewhen(l != l[1], l, 1)
+    lx = ta.valuewhen(l == low, time, 1)
+
+    if barstate.islast
+        ext = time + (time - time[1])*20
+        line.set_xy1(high_line, hx, hy)
+        line.set_xy2(high_line, ext, hy)
+        label.set_xy(high_lbl, ext, hy)
+        line.set_xy1(low_line, lx, ly)
+        line.set_xy2(low_line, ext, ly)
+        label.set_xy(low_lbl, ext, ly)
+
+// Global variables for structure
+var trend = 0, var itrend = 0
+var top_y = 0., var top_x = 0
+var btm_y = 0., var btm_x = 0
+var itop_y = 0., var itop_x = 0
+var ibtm_y = 0., var ibtm_x = 0
+var trail_up = high, var trail_dn = low
+var trail_up_x = 0,  var trail_dn_x = 0
+var top_cross = true,  var btm_cross = true
+var itop_cross = true, var ibtm_cross = true
+var txt_top = '',  var txt_btm = ''
+
+// Alerts variables
+bull_choch_alert = false 
+bull_bos_alert   = false 
+bear_choch_alert = false 
+bear_bos_alert   = false 
+bull_ichoch_alert = false 
+bull_ibos_alert   = false 
+bear_ichoch_alert = false 
+bear_ibos_alert   = false 
+bull_iob_break = false 
+bear_iob_break = false
+bull_ob_break = false 
+bear_ob_break = false
+eqh_alert = false 
+eql_alert = false 
+
+// Structure colors
+var bull_css = style == 'Monochrome' ? #b2b5be : swing_bull_css
+var bear_css = style == 'Monochrome' ? #b2b5be : swing_bear_css
+var ibull_css = style == 'Monochrome' ? #b2b5be : swing_ibull_css
+var ibear_css = style == 'Monochrome' ? #b2b5be : swing_ibear_css
+
+// Label sizes
+var internal_structure_lbl_size = internal_structure_size == 'Tiny' ? size.tiny : internal_structure_size == 'Small' ? size.small : size.normal 
+var swing_structure_lbl_size = swing_structure_size == 'Tiny' ? size.tiny : swing_structure_size == 'Small' ? size.small : size.normal 
+var eqhl_lbl_size = eq_size == 'Tiny' ? size.tiny : eq_size == 'Small' ? size.small : size.normal 
+
+[top, btm] = swings(length)
+[itop, ibtm] = swings(5)
+
+// Pivot High
+var line extend_top = na
+var label extend_top_lbl = label.new(na, na, color = TRANSP_CSS, textcolor = bear_css, style = label.style_label_down, size = size.tiny)
+if top
+    top_cross := true
+    txt_top := top > top_y ? 'HH' : 'LH'
+    if show_swings
+        top_lbl = label.new(n-length, top, txt_top, color = TRANSP_CSS, textcolor = bear_css, style = label.style_label_down, size = swing_structure_lbl_size)
+        if mode == 'Present'
+            label.delete(top_lbl[1])
+    line.delete(extend_top[1])
+    extend_top := line.new(n-length, top, n, top, color = bear_css)
+    top_y := top
+    top_x := n - length
+    trail_up := top
+    trail_up_x := n - length
+
+if itop
+    itop_cross := true
+    itop_y := itop
+    itop_x := n - 5
+trail_up := math.max(high, trail_up)
+trail_up_x := trail_up == high ? n : trail_up_x
+
+if barstate.islast and show_hl_swings
+    line.set_xy1(extend_top, trail_up_x, trail_up)
+    line.set_xy2(extend_top, n + 20, trail_up)
+    label.set_x(extend_top_lbl, n + 20)
+    label.set_y(extend_top_lbl, trail_up)
+    label.set_text(extend_top_lbl, trend < 0 ? 'Strong High' : 'Weak High')
+
+// Pivot Low
+var line extend_btm = na 
+var label extend_btm_lbl = label.new(na, na, color = TRANSP_CSS, textcolor = bull_css, style = label.style_label_up, size = size.tiny)
+if btm
+    btm_cross := true
+    txt_btm := btm < btm_y ? 'LL' : 'HL'
+    if show_swings
+        btm_lbl = label.new(n - length, btm, txt_btm, color = TRANSP_CSS, textcolor = bull_css, style = label.style_label_up, size = swing_structure_lbl_size)
+        if mode == 'Present'
+            label.delete(btm_lbl[1])
+    line.delete(extend_btm[1])
+    extend_btm := line.new(n - length, btm, n, btm, color = bull_css)
+    btm_y := btm
+    btm_x := n-length
+    trail_dn := btm
+    trail_dn_x := n-length
+
+if ibtm
+    ibtm_cross := true
+    ibtm_y := ibtm
+    ibtm_x := n - 5
+trail_dn := math.min(low, trail_dn)
+trail_dn_x := trail_dn == low ? n : trail_dn_x
+
+if barstate.islast and show_hl_swings
+    line.set_xy1(extend_btm, trail_dn_x, trail_dn)
+    line.set_xy2(extend_btm, n + 20, trail_dn)
+    label.set_x(extend_btm_lbl, n + 20)
+    label.set_y(extend_btm_lbl, trail_dn)
+    label.set_text(extend_btm_lbl, trend > 0 ? 'Strong Low' : 'Weak Low')
+
+// Order Block Arrays
+var iob_top = array.new_float(0)
+var iob_btm = array.new_float(0)
+var iob_left = array.new_int(0)
+var iob_type = array.new_int(0)
+
+var ob_top = array.new_float(0)
+var ob_btm = array.new_float(0)
+var ob_left = array.new_int(0)
+var ob_type = array.new_int(0)
+
+// Detect internal structures
+var bull_concordant = true
+if ifilter_confluence
+    bull_concordant := high - math.max(close, open) > math.min(close, open - low)
+
+if ta.crossover(close, itop_y) and itop_cross and top_y != itop_y and bull_concordant
+    bool choch = na
+    if itrend < 0
+        choch := true
+        bull_ichoch_alert := true
+    else 
+        bull_ibos_alert := true
+    txt = choch ? 'CHoCH' : 'BOS'
+    if show_internals
+        if show_ibull == 'All' or (show_ibull == 'BOS' and not choch) or (show_ibull == 'CHoCH' and choch)
+            display_Structure(itop_x, itop_y, txt, ibull_css, true, true, internal_structure_lbl_size)
+    itop_cross := false
+    itrend := 1
+    if show_iob
+        ob_coord(false, itop_x, iob_top, iob_btm, iob_left, iob_type)
+
+if ta.crossover(close, top_y) and top_cross
+    bool choch = na
+    if trend < 0
+        choch := true
+        bull_choch_alert := true
+    else 
+        bull_bos_alert := true
+    txt = choch ? 'CHoCH' : 'BOS'
+    if show_Structure
+        if show_bull == 'All' or (show_bull == 'BOS' and not choch) or (show_bull == 'CHoCH' and choch)
+            display_Structure(top_x, top_y, txt, bull_css, false, true, swing_structure_lbl_size)
+    if show_ob
+        ob_coord(false, top_x, ob_top, ob_btm, ob_left, ob_type)
+    top_cross := false
+    trend := 1
+
+var bear_concordant = true
+if ifilter_confluence
+    bear_concordant := high - math.max(close, open) < math.min(close, open - low)
+
+if ta.crossunder(close, ibtm_y) and ibtm_cross and btm_y != ibtm_y and bear_concordant
+    bool choch = false
+    if itrend > 0
+        choch := true
+        bear_ichoch_alert := true
+    else 
+        bear_ibos_alert := true
+    txt = choch ? 'CHoCH' : 'BOS'
+    if show_internals
+        if show_ibear == 'All' or (show_ibear == 'BOS' and not choch) or (show_ibear == 'CHoCH' and choch)
+            display_Structure(ibtm_x, ibtm_y, txt, ibear_css, true, false, internal_structure_lbl_size)
+    ibtm_cross := false
+    itrend := -1
+    if show_iob
+        ob_coord(true, ibtm_x, iob_top, iob_btm, iob_left, iob_type)
+
+if ta.crossunder(close, btm_y) and btm_cross
+    bool choch = na
+    if trend > 0
+        choch := true
+        bear_choch_alert := true
+    else 
+        bear_bos_alert := true
+    txt = choch ? 'CHoCH' : 'BOS'
+    if show_Structure
+        if show_bear == 'All' or (show_bear == 'BOS' and not choch) or (show_bear == 'CHoCH' and choch)
+            display_Structure(btm_x, btm_y, txt, bear_css, false, false, swing_structure_lbl_size)
+    if show_ob
+        ob_coord(true, btm_x, ob_top, ob_btm, ob_left, ob_type)
+    btm_cross := false
+    trend := -1
+
+// Order Block Drawing
+var iob_boxes = array.new_box(0)
+var ob_boxes = array.new_box(0)
+
+// Standardized O(N) Array cleanups to optimize performance and prevent memory leak
+if array.size(iob_type) > 0
+    for i = array.size(iob_type) - 1 to 0
+        element = array.get(iob_type, i)
+        if close < array.get(iob_btm, i) and element == 1
+            array.remove(iob_top, i) 
+            array.remove(iob_btm, i) 
+            array.remove(iob_left, i) 
+            array.remove(iob_type, i)
+            bull_iob_break := true
+        else if close > array.get(iob_top, i) and element == -1
+            array.remove(iob_top, i) 
+            array.remove(iob_btm, i)
+            array.remove(iob_left, i) 
+            array.remove(iob_type, i)
+            bear_iob_break := true
+
+if array.size(ob_type) > 0
+    for i = array.size(ob_type) - 1 to 0
+        element = array.get(ob_type, i)
+        if close < array.get(ob_btm, i) and element == 1
+            array.remove(ob_top, i) 
+            array.remove(ob_btm, i) 
+            array.remove(ob_left, i) 
+            array.remove(ob_type, i)
+            bull_ob_break := true
+        else if close > array.get(ob_top, i) and element == -1
+            array.remove(ob_top, i) 
+            array.remove(ob_btm, i)
+            array.remove(ob_left, i) 
+            array.remove(ob_type, i)
+            bear_ob_break := true
+
+// Capping array sizes to 20 elements max to save memory and improve CPU speed
+if array.size(iob_type) > 20
+    array.pop(iob_top)
+    array.pop(iob_btm)
+    array.pop(iob_left)
+    array.pop(iob_type)
+
+if array.size(ob_type) > 20
+    array.pop(ob_top)
+    array.pop(ob_btm)
+    array.pop(ob_left)
+    array.pop(ob_type)
+
+iob_size = array.size(iob_type)
+ob_size = array.size(ob_type)
+
+if barstate.isfirst
+    if show_iob
+        for i = 0 to iob_showlast-1
+            array.push(iob_boxes, box.new(na,na,na,na, xloc = xloc.bar_time))
+    if show_ob
+        for i = 0 to ob_showlast-1
+            array.push(ob_boxes, box.new(na,na,na,na, xloc = xloc.bar_time))
+
+if iob_size > 0
+    if barstate.islast
+        display_ob(iob_boxes, iob_top, iob_btm, iob_left, iob_type, iob_showlast, false, iob_size)
+
+if ob_size > 0
+    if barstate.islast
+        display_ob(ob_boxes, ob_top, ob_btm, ob_left, ob_type, ob_showlast, true, ob_size)
+
+// EQH/EQL Logic
+var eq_prev_top = 0.
+var eq_top_x = 0
+var eq_prev_btm = 0.
+var eq_btm_x = 0
+
+if show_eq
+    eq_top = ta.pivothigh(eq_len, eq_len)
+    eq_btm = ta.pivotlow(eq_len, eq_len)
+
+    if eq_top 
+        max = math.max(eq_top, eq_prev_top)
+        min = math.min(eq_top, eq_prev_top)
+        if max < min + atr * eq_threshold
+            eqh_line = line.new(eq_top_x, eq_prev_top, n-eq_len, eq_top, color = bear_css, style = line.style_dotted)
+            eqh_lbl = label.new(int(math.avg(n-eq_len, eq_top_x)), eq_top, 'EQH', color = #00000000, textcolor = bear_css, style = label.style_label_down, size = eqhl_lbl_size)
+            if mode == 'Present'
+                line.delete(eqh_line[1])
+                label.delete(eqh_lbl[1])
+            eqh_alert := true
+        eq_prev_top := eq_top
+        eq_top_x := n-eq_len
+
+    if eq_btm 
+        max = math.max(eq_btm, eq_prev_btm)
+        min = math.min(eq_btm, eq_prev_btm)
+        if min > max - atr * eq_threshold
+            eql_line = line.new(eq_btm_x, eq_prev_btm, n-eq_len, eq_btm, color = bull_css, style = line.style_dotted)
+            eql_lbl = label.new(int(math.avg(n-eq_len, eq_btm_x)), eq_btm, 'EQL', color = #00000000, textcolor = bull_css, style = label.style_label_up, size = eqhl_lbl_size)
+            eql_alert := true
+            if mode == 'Present'
+                line.delete(eql_line[1])
+                label.delete(eql_lbl[1])
+        eq_prev_btm := eq_btm
+        eq_btm_x := n-eq_len
+
+// Fair Value Gaps (FVG)
+var bullish_fvg_max = array.new_box(0)
+var bullish_fvg_min = array.new_box(0)
+var bearish_fvg_max = array.new_box(0)
+var bearish_fvg_min = array.new_box(0)
+bullish_fvg_cnd = false
+bearish_fvg_cnd = false
+
+[src_c1, src_o1, src_h, src_l, src_h2, src_l2] = request.security(syminfo.tickerid, fvg_tf, get_ohlc())
+
+if show_fvg
+    delta_per = (src_c1 - src_o1) / src_o1 * 100
+    change_tf = timeframe.change(fvg_tf)
+    threshold = fvg_auto ? ta.cum(math.abs(change_tf ? delta_per : 0)) / n * 2 : 0
+
+    bullish_fvg_cnd := src_l > src_h2 and src_c1 > src_h2 and delta_per > threshold and change_tf
+    bearish_fvg_cnd := src_h < src_l2 and src_c1 < src_l2 and -delta_per > threshold and change_tf
+
+    if bullish_fvg_cnd
+        array.unshift(bullish_fvg_max, box.new(n-1, src_l, n + fvg_extend, math.avg(src_l, src_h2), border_color = bull_fvg_css, bgcolor = bull_fvg_css))
+        array.unshift(bullish_fvg_min, box.new(n-1, math.avg(src_l, src_h2), n + fvg_extend, src_h2, border_color = bull_fvg_css, bgcolor = bull_fvg_css))
+    
+    if bearish_fvg_cnd
+        array.unshift(bearish_fvg_max, box.new(n-1, src_h, n + fvg_extend, math.avg(src_h, src_l2), border_color = bear_fvg_css, bgcolor = bear_fvg_css))
+        array.unshift(bearish_fvg_min, box.new(n-1, math.avg(src_h, src_l2), n + fvg_extend, src_l2, border_color = bear_fvg_css, bgcolor = bear_fvg_css))
+
+    // Optimized O(N) traversal for FVG mitigation checks
+    if array.size(bullish_fvg_min) > 0
+        for i = array.size(bullish_fvg_min) - 1 to 0
+            bx = array.get(bullish_fvg_min, i)
+            if low < box.get_bottom(bx)
+                box.delete(bx)
+                box.delete(array.get(bullish_fvg_max, i))
+                array.remove(bullish_fvg_min, i)
+                array.remove(bullish_fvg_max, i)
+    
+    if array.size(bearish_fvg_max) > 0
+        for i = array.size(bearish_fvg_max) - 1 to 0
+            bx = array.get(bearish_fvg_max, i)
+            if high > box.get_top(bx)
+                box.delete(bx)
+                box.delete(array.get(bearish_fvg_min, i))
+                array.remove(bearish_fvg_max, i)
+                array.remove(bearish_fvg_min, i)
+
+    // Capping FVG array size to 20 to save memory
+    if array.size(bullish_fvg_min) > 20
+        box.delete(array.pop(bullish_fvg_min))
+        box.delete(array.pop(bullish_fvg_max))
+    if array.size(bearish_fvg_max) > 20
+        box.delete(array.pop(bearish_fvg_max))
+        box.delete(array.pop(bearish_fvg_min))
+
+// Previous high/lows
+[pdh, pdl] = request.security(syminfo.tickerid, 'D', hl(), lookahead = barmerge.lookahead_on)
+[pwh, pwl] = request.security(syminfo.tickerid, 'W', hl(), lookahead = barmerge.lookahead_on)
+[pmh, pml] = request.security(syminfo.tickerid, 'M', hl(), lookahead = barmerge.lookahead_on)
+
+if show_pdhl
+    phl(pdh, pdl, 'D', pdhl_css)
+if show_pwhl
+    phl(pwh, pwl, 'W', pwhl_css)
+if show_pmhl
+    phl(pmh, pml, 'M', pmhl_css)
+
+// Premium/Discount/Equilibrium zones
+var premium = box.new(na, na, na, na, bgcolor = color.new(premium_css, 80), border_color = na)
+var premium_lbl = label.new(na, na, text = 'Premium', color = TRANSP_CSS, textcolor = premium_css, style = label.style_label_down, size = size.small)
+var eq = box.new(na, na, na, na, bgcolor = color.rgb(120, 123, 134, 80), border_color = na)
+var eq_lbl = label.new(na, na, text = 'Equilibrium', color = TRANSP_CSS, textcolor = eq_css, style = label.style_label_left, size = size.small)
+var discount = box.new(na, na, na, na, bgcolor = color.new(discount_css, 80), border_color = na)
+var discount_lbl = label.new(na, na, text = 'Discount', color = TRANSP_CSS, textcolor = discount_css, style = label.style_label_up, size = size.small)
+
+if barstate.islast and show_sd
+    avg = math.avg(trail_up, trail_dn)
+    box.set_lefttop(premium, math.max(top_x, btm_x), trail_up)
+    box.set_rightbottom(premium, n, .95 * trail_up + .05 * trail_dn)
+    label.set_xy(premium_lbl, int(math.avg(math.max(top_x, btm_x), n)), trail_up)
+
+    box.set_lefttop(eq, math.max(top_x, btm_x), .525 * trail_up + .475*trail_dn)
+    box.set_rightbottom(eq, n, .525 * trail_dn + .475 * trail_up)
+    label.set_xy(eq_lbl, n, avg)
+    
+    box.set_lefttop(discount, math.max(top_x, btm_x), .95 * trail_dn + .05 * trail_up)
+    box.set_rightbottom(discount, n, trail_dn)
+    label.set_xy(discount_lbl, int(math.avg(math.max(top_x, btm_x), n)), trail_dn)
+
+// Trend color candles
+var color trend_css = na
+if show_trend
+    if style == 'Colored'
+        trend_css := itrend == 1 ? bull_css : bear_css
+    else if style == 'Monochrome'
+        trend_css := itrend == 1 ? #b2b5be : #5d606b
+
+plotcandle(open, high, low, close, color = trend_css, wickcolor = trend_css, bordercolor = trend_css, editable = false)
+
+
+// =========================================================================
+// 4. HAMA CANDLES
+// =========================================================================
+
+// Inputs for HAMA
+group_hama  = "HAMA Candles Settings"
+bull_hama   = input(color.rgb(0, 255, 0), title='HAMA Bull Color', group=group_hama, display = display.none)
+bear_hama   = input(color.rgb(255, 0, 0), title='HAMA Bear Color', group=group_hama, display = display.none)
+neutral     = input(color.rgb(255, 255, 0, 0), title='HAMA Neutral Color', group=group_hama, display = display.none)
+UseGradient = input(true, title='Use HAMA Gradient Colors', group=group_hama, display = display.none)
+stepn       = input(5, title='HAMA Max Gradient Steps', group=group_hama, display = display.none)
+
+WickColor   = input.color(color.rgb(80, 80, 80, 100), title='Wick Color', tooltip='Suggest Full Transparency.', group=group_hama, display = display.none)
+OpenLength  = input.int(30, minval=1, title='Length Open', inline='Open', group=group_hama, display = display.none)
+OpenType    = input.string(defval='EMA', title='Type', options=['EMA', 'SMA', 'WMA'], inline='Open', group=group_hama, display = display.none)
+HighLength  = 20
+HighType    = 'EMA'
+LowLength   = 20
+LowType     = 'EMA'
+CloseLength = input.int(25, minval=1, title='Length Close', inline='Close', group=group_hama, display = display.none)
+CloseType   = input.string(defval='EMA', title='Type', options=['EMA', 'SMA', 'WMA'], inline='Close', group=group_hama, display = display.none)
+LengthMA    = input.int(55, minval=1, title='MA Line Length', inline='MA Info', group=group_hama, display = display.none)
+MAType      = input.string(defval='EMA', title='MA Line Type', options=['EMA', 'SMA', 'WMA'], inline='MA Info', group=group_hama, display = display.none)
+MASource    = input(hl2, title='MA Source', group=group_hama, display = display.none)
+
+// Gradient Helper Function
+f_c_gradientAdvDecPro(_source, _center, _steps, _c_bearWeak, _c_bearStrong, _c_bullWeak, _c_bullStrong) =>
+    var float _qtyAdvDec = 0.
+    var float _maxSteps = math.max(1, _steps)
+    bool _xUp = ta.crossover(_source, _center)
+    bool _xDn = ta.crossunder(_source, _center)
+    float _chg = ta.change(_source)
+    bool _up = _chg > 0
+    bool _dn = _chg < 0
+    bool _srcBull = _source > _center
+    bool _srcBear = _source < _center
+    _qtyAdvDec := _srcBull ? _xUp ? 1 : _up ? math.min(_maxSteps, _qtyAdvDec + 1) : _dn ? math.max(1, _qtyAdvDec - 1) : _qtyAdvDec : _srcBear ? _xDn ? 1 : _dn ? math.min(_maxSteps, _qtyAdvDec + 1) : _up ? math.max(1, _qtyAdvDec - 1) : _qtyAdvDec : _qtyAdvDec
+    var color _return = na
+    _return := _srcBull ? color.from_gradient(_qtyAdvDec, 1, _maxSteps, _c_bullWeak, _c_bullStrong) : _srcBear ? color.from_gradient(_qtyAdvDec, 1, _maxSteps, _c_bearWeak, _c_bearStrong) : _return
+    _return
+
+// Unified Moving Average Calculation Function
+f_calc_ma(type_str, src, len) =>
+    switch type_str
+        'EMA'  => ta.ema(src, len)
+        'SMA'  => ta.sma(src, len)
+        'WMA'  => ta.wma(src, len)
+        'RMA'  => ta.rma(src, len)
+        'VWMA' => ta.vwma(src, len)
+        'HMA'  => ta.hma(src, len)
+        'TMA'  => ta.sma(ta.sma(src, len), len)
+        => na
+
+ma_hama     = f_calc_ma(MAType, close, LengthMA)
+col         = f_c_gradientAdvDecPro(ma_hama, ta.ema(ma_hama, 3), stepn, neutral, bear_hama, neutral, bull_hama)
+
+TypeOpen    = OpenType
+SourceOpen  = (open[1] + close[1]) / 2
+LengthOpen  = OpenLength
+
+TypeHigh    = HighType
+SourceHigh  = math.max(high, close)
+LengthHigh  = HighLength
+
+TypeLow     = LowType
+SourceLow   = math.min(low, close)
+LengthLow   = LowLength
+
+TypeClose   = CloseType
+SourceClose = (open + high + low + close) / 4
+LengthClose = CloseLength
+
+MA1         = f_calc_ma(MAType, MASource, LengthMA)
+CandleOpen  = f_calc_ma(TypeOpen, SourceOpen, LengthOpen)
+CandleHigh  = f_calc_ma(TypeHigh, SourceHigh, LengthHigh)
+CandleLow   = f_calc_ma(TypeLow, SourceLow, LengthLow)
+CandleClose = f_calc_ma(TypeClose, SourceClose, LengthClose)
+
+// Plot HAMA Candles and MA line
+BodyColor = CandleOpen > CandleOpen[1] ? color.green : color.red
+plotcandle(CandleOpen, CandleHigh, CandleLow, CandleClose, color=UseGradient ? col : BodyColor, title='HAMA Candles', wickcolor=WickColor, bordercolor=na)
+plot(MA1, title='HAMA MA Line', color=UseGradient ? col : BodyColor, style=plot.style_line, linewidth=2)
+
+
+// =========================================================================
+// 6. ALERTS (SMC + Cleanup Core Conditions)
+// =========================================================================
+// --- Original SMC Alerts ---
+alertcondition(bull_ibos_alert, 'Internal Bullish BOS', 'Internal Bullish BOS formed')
+alertcondition(bull_ichoch_alert, 'Internal Bullish CHoCH', 'Internal Bullish CHoCH formed')
+alertcondition(bear_ibos_alert, 'Internal Bearish BOS', 'Internal Bearish BOS formed')
+alertcondition(bear_ichoch_alert, 'Internal Bearish CHoCH', 'Internal Bearish CHoCH formed')
+alertcondition(bull_bos_alert, 'Bullish BOS', 'Bullish BOS formed')
+alertcondition(bull_choch_alert, 'Bullish CHoCH', 'Bullish CHoCH formed')
+alertcondition(bear_bos_alert, 'Bearish BOS', 'Bearish BOS formed')
+alertcondition(bear_choch_alert, 'Bearish CHoCH', 'Bearish CHoCH formed')
+alertcondition(bull_iob_break, 'Bullish Internal OB Breakout', 'Price broke bullish internal OB')
+alertcondition(bear_iob_break, 'Bearish Internal OB Breakout', 'Price broke bearish internal OB')
+alertcondition(bull_ob_break, 'Bullish Swing OB Breakout', 'Price broke bullish swing OB')
+alertcondition(bear_ob_break, 'Bearish Swing OB Breakout', 'Price broke bearish swing OB')
+alertcondition(eqh_alert, 'Equal Highs', 'Equal highs detected')
+alertcondition(eql_alert, 'Equal Lows', 'Equal lows detected')
+alertcondition(bullish_fvg_cnd, 'Bullish FVG', 'Bullish FVG formed')
+alertcondition(bearish_fvg_cnd, 'Bearish FVG', 'Bearish FVG formed')
+
+// --- Cleanup Core: Trend Acceleration Alerts ---
+alertcondition(early_choch_bull, 'Early CHoCH Bull Warning', 'Slope negative but acceleration positive — potential bullish reversal')
+alertcondition(early_choch_bear, 'Early CHoCH Bear Warning', 'Slope positive but acceleration negative — potential bearish reversal')
+
+// --- Cleanup Core: Sigma Band & Volatility Alerts ---
+alertcondition(price_at_upper, 'Price at +2s Band', 'Price touched upper sigma band - potential overbought')
+alertcondition(price_at_lower, 'Price at -2s Band', 'Price touched lower sigma band - potential oversold')
+alertcondition(vol_expanding, 'Volatility Expanding', 'Volatility ratio > 1.3x average - regime expansion detected')
+alertcondition(vol_contracting, 'Volatility Contracting', 'Volatility ratio < 0.7x average - regime contraction detected')
+
+// --- Cleanup Core: Taylor Projection Info Label ---
+var label taylor_lbl = label.new(na, na, '', xloc=xloc.bar_index, color=color.new(#e040fb, 80), textcolor=#e040fb, style=label.style_label_left, size=size.small)
+if barstate.islast
+    label.set_xy(taylor_lbl, bar_index + 3, taylor_smooth)
+    label.set_text(taylor_lbl, 'T:' + str.tostring(taylor_smooth, format.mintick))
+
+// Momentum State info table (top-right corner)
+color tbl_bg      = color.new(#1e1e2e, 20)
+color tbl_border   = color.new(#444444, 50)
+color tbl_label    = #aaaaaa
+color tbl_bull     = #00e676
+color tbl_bear     = #ff5252
+color tbl_vol_hot  = #ff6d00
+color tbl_vol_cold = #00e676
+color tbl_taylor   = #e040fb
+
+var table info_tbl = table.new(position.top_right, 2, 4, bgcolor=tbl_bg, border_width=1, border_color=tbl_border)
+if barstate.islast
+    // Row 0: Momentum
+    table.cell(info_tbl, 0, 0, 'Momentum', text_color=tbl_label, text_size=size.tiny)
+    color mom_css = str.contains(momentum_state, '⬆') ? tbl_bull : str.contains(momentum_state, '⬇') ? tbl_bear : tbl_label
+    table.cell(info_tbl, 1, 0, momentum_state, text_color=mom_css, text_size=size.tiny)
+    // Row 1: Volatility
+    table.cell(info_tbl, 0, 1, 'Volatility', text_color=tbl_label, text_size=size.tiny)
+    string vol_txt = vol_expanding ? 'Expand' : vol_contracting ? 'Contract' : 'Normal'
+    color vol_css = vol_expanding ? tbl_vol_hot : vol_contracting ? tbl_vol_cold : tbl_label
+    table.cell(info_tbl, 1, 1, vol_txt, text_color=vol_css, text_size=size.tiny)
+    // Row 2: Sigma Ratio
+    table.cell(info_tbl, 0, 2, 'Sigma', text_color=tbl_label, text_size=size.tiny)
+    table.cell(info_tbl, 1, 2, str.tostring(vol_ratio, format.mintick) + 'x', text_color=vol_css, text_size=size.tiny)
+    // Row 3: Taylor
+    table.cell(info_tbl, 0, 3, 'Taylor', text_color=tbl_label, text_size=size.tiny)
+    table.cell(info_tbl, 1, 3, str.tostring(taylor_smooth, format.mintick), text_color=tbl_taylor, text_size=size.tiny)
+
+
+// =========================================================================
+// 7. SNIPER ENTRY TACTICS SYSTEM (v3 NEW)
+// =========================================================================
+// Integrates the "Sniper Entry Tactics" 4-Tier system:
+//   Tier 1: Market Context (macro trend alignment)       — 3 pts
+//   Tier 2: Kill Zone (25EMA dominance & structure)      — 3 pts
+//   Tier 3: Catalyst (buildup compression & dbl pressure)— 2 pts
+//   Tier 4: Trigger (Inside Bar / Combi pattern)         — 2 pts
+//   Total possible: 10 pts  |  Pace penalty: -1 if frantic
+// =========================================================================
+
+// --- 7A. Sniper Inputs ---
+group_sniper    = "🎯 Sniper Entry Tactics"
+sniper_enabled  = input(true, 'Enable Sniper System', group = group_sniper, display = display.none)
+ema25_len       = input.int(25, '25EMA Length', minval = 5, group = group_sniper, display = display.none)
+buildup_lookback = input.int(10, 'Buildup Lookback', minval = 3, maxval = 30, group = group_sniper, display = display.none)
+buildup_atr_ratio = input.float(0.5, 'Buildup ATR Ratio', minval = 0.1, maxval = 1.0, step = 0.1, group = group_sniper, display = display.none)
+rr_ratio        = input.float(2.0, 'Risk:Reward', minval = 1.0, maxval = 5.0, step = 0.5, group = group_sniper, display = display.none)
+min_score       = input.int(6, 'Min Score to Signal', minval = 3, maxval = 10, group = group_sniper, display = display.none)
+cooldown_bars   = input.int(5, 'Signal Cooldown (bars)', minval = 1, maxval = 50, group = group_sniper, display = display.none)
+trigger_memory  = input.int(3, 'Trigger Memory (bars)', minval = 1, maxval = 5, group = group_sniper, tooltip = 'How many bars back to scan for a valid Inside Bar pattern', display = display.none)
+enable_engulfing = input(true, 'Enable Engulfing Trigger', group = group_sniper, tooltip = 'Allow Bullish/Bearish Engulfing as T4 trigger', display = display.none)
+enable_pinbar   = input(true, 'Enable Pinbar Trigger', group = group_sniper, tooltip = 'Allow Pinbar/Hammer as T4 trigger at Kill Zone', display = display.none)
+sniper_bull_color = input.color(#00e676, 'Bull Signal Color', group = group_sniper, display = display.none)
+sniper_bear_color = input.color(#ff5252, 'Bear Signal Color', group = group_sniper, display = display.none)
+
+// --- 7B. 25EMA (Kill Zone Reference Line) ---
+ema25       = ta.ema(close, ema25_len)
+ema25_slope = (ema25 - ema25[5]) / ema25[5]
+// --- 7C. TIER 1: Market Context (max 3 pts) ---
+// Criterion 1: EMA200 slope agrees with direction
+// Criterion 2: Fast EMA positioned correctly vs EMA200
+// Criterion 3: Price in Discount (bull) or Premium (bear) zone
+swing_eq = math.avg(trail_up, trail_dn)
+
+t1_bull_1 = ema200Slope > 0
+t1_bull_2 = emaFast > ema200
+t1_bull_3 = close < swing_eq
+t1_bull_score = (t1_bull_1 ? 1 : 0) + (t1_bull_2 ? 1 : 0) + (t1_bull_3 ? 1 : 0)
+
+t1_bear_1 = ema200Slope < 0
+t1_bear_2 = emaFast < ema200
+t1_bear_3 = close > swing_eq
+t1_bear_score = (t1_bear_1 ? 1 : 0) + (t1_bear_2 ? 1 : 0) + (t1_bear_3 ? 1 : 0)
+
+// --- 7D. TIER 2: Kill Zone (max 3 pts) ---
+// Criterion 4: 25EMA slope alignment
+t2_bull_1 = ema25_slope > 0
+t2_bear_1 = ema25_slope < 0
+
+// Criterion 5: Price at kill zone (pullback to 25EMA and bounce/rejection)
+t2_bull_2 = low <= ema25 and close > ema25
+t2_bear_2 = high >= ema25 and close < ema25
+
+// Helper to check if an active Order Block exists in the array matching the target direction
+f_has_ob(type_array, target_val) =>
+    has_ob = false
+    if array.size(type_array) > 0
+        for i = 0 to array.size(type_array) - 1
+            if array.get(type_array, i) == target_val
+                has_ob := true
+                break
+    has_ob
+
+// Criterion 6: Structural integrity — active Order Block supports direction
+t2_bull_3 = f_has_ob(iob_type, 1) or f_has_ob(ob_type, 1)
+t2_bear_3 = f_has_ob(iob_type, -1) or f_has_ob(ob_type, -1)
+
+t2_bull_score = (t2_bull_1 ? 1 : 0) + (t2_bull_2 ? 1 : 0) + (t2_bull_3 ? 1 : 0)
+t2_bear_score = (t2_bear_1 ? 1 : 0) + (t2_bear_2 ? 1 : 0) + (t2_bear_3 ? 1 : 0)
+
+// --- 7E. TIER 3: Catalyst (max 2 pts) ---
+// E3: Directional Buildup — bars must be narrow AND near Kill Zone (25EMA)
+// E5: Adaptive ATR — ratio self-normalizes across volatility regimes
+atr_sma50      = ta.sma(atr, 50)
+adaptive_ratio = buildup_atr_ratio * (atr / math.max(atr_sma50, atr * 0.01))
+
+buildup_count = 0
+for i = 1 to buildup_lookback
+    bar_range     = high[i] - low[i]
+    is_narrow     = bar_range < adaptive_ratio * atr
+    near_kz       = math.abs(close[i] - ema25[i]) < atr * 0.5  // E3: proximity to Kill Zone
+    if is_narrow and near_kz
+        buildup_count += 1
+t3_buildup = buildup_count >= math.floor(buildup_lookback * 0.4)  // E3: threshold reduced from 60% to 40% (proximity filter is strict)
+
+// Criterion 8: Double Pressure — E4: graduated threshold (1.5x → 1.2x)
+vol_sma20    = ta.sma(volume, 20)
+range_sma20  = ta.sma(high - low, 20)
+sniper_vol_ratio = nz(vol_sma20) > 0 ? volume / vol_sma20 : (high - low) / math.max(range_sma20, atr * 0.01)
+t3_double_pressure = sniper_vol_ratio >= 1.2  // E4: relaxed from 1.5x to catch clean breaks in low-volume instruments
+
+t3_score = (t3_buildup ? 1 : 0) + (t3_double_pressure ? 1 : 0)
+
+// --- 7F. TIER 4: Trigger — Multi-Pattern (max 2 pts) ---
+// PATTERN A: Inside Bar / Combi (original — highest confidence, 2pts)
+is_mother_bar  = (high[2] - low[2]) > atr * 0.8
+is_inside_bar  = high[1] <= high[2] and low[1] >= low[2] and is_mother_bar
+combi_bull_ib  = is_inside_bar and close > high[1]
+combi_bear_ib  = is_inside_bar and close < low[1]
+
+// E2: Trigger Memory — scan back N bars for a valid Inside Bar + delayed break
+ib_in_memory     = false
+mem_ib_high      = high[1]
+mem_ib_low       = low[1]
+for i = 1 to trigger_memory
+    if high[i] <= high[i + 1] and low[i] >= low[i + 1] and (high[i + 1] - low[i + 1]) > atr * 0.8
+        ib_in_memory := true
+        mem_ib_high  := high[i]
+        mem_ib_low   := low[i]
+        break
+mem_combi_bull = ib_in_memory and not combi_bull_ib and close > mem_ib_high  // delayed bullish break
+mem_combi_bear = ib_in_memory and not combi_bear_ib and close < mem_ib_low   // delayed bearish break
+
+// PATTERN B: Engulfing (E1 — strong reversal, 1pt)
+body_curr    = math.abs(close - open)
+body_prev    = math.abs(close[1] - open[1])
+bull_engulf  = enable_engulfing and close > open and close > high[1] and open <= low[1] and body_curr > body_prev
+bear_engulf  = enable_engulfing and close < open and close < low[1] and open >= high[1] and body_curr > body_prev
+
+// PATTERN C: Pinbar / Hammer (E1 — wick rejection at Kill Zone, 1pt)
+upper_wick   = high - math.max(close, open)
+lower_wick   = math.min(close, open) - low
+body_size    = math.max(math.abs(close - open), atr * 0.001)  // avoid zero-division
+bull_pinbar  = enable_pinbar and lower_wick >= 2 * body_size and upper_wick < body_size * 0.5 and low <= ema25 * 1.002
+bear_pinbar  = enable_pinbar and upper_wick >= 2 * body_size and lower_wick < body_size * 0.5 and high >= ema25 * 0.998
+
+// COMPOSITE TRIGGER: any valid pattern fires T4
+// E6: expanded trigger family replaces the combi-only hard gate
+trigger_bull = combi_bull_ib or mem_combi_bull or bull_engulf or bull_pinbar
+trigger_bear = combi_bear_ib or mem_combi_bear or bear_engulf or bear_pinbar
+
+// Scoring hierarchy: Inside Bar break = 2pts, Memory break = 2pts, Engulfing/Pinbar = 1pt
+t4_bull_score = combi_bull_ib ? 2 : mem_combi_bull ? 2 : (bull_engulf or bull_pinbar) ? 1 : is_inside_bar ? 1 : 0
+t4_bear_score = combi_bear_ib ? 2 : mem_combi_bear ? 2 : (bear_engulf or bear_pinbar) ? 1 : is_inside_bar ? 1 : 0
+
+// --- 7G. Pace Check & Round Number Magnet ---
+is_frantic   = (high - low) > 2 * atr
+pace_penalty = is_frantic ? 1 : 0
+
+round_interval = close >= 50000 ? 5000.0 : close >= 10000 ? 1000.0 : close >= 1000 ? 100.0 : close >= 100 ? 50.0 : close >= 10 ? 5.0 : close >= 1 ? 0.1 : 0.01
+nearest_round  = math.round(close / round_interval) * round_interval
+magnet_warning = math.abs(close - nearest_round) < atr * 0.5
+
+// --- 7H. Total Scores ---
+total_bull_raw = t1_bull_score + t2_bull_score + t3_score + t4_bull_score
+total_bear_raw = t1_bear_score + t2_bear_score + t3_score + t4_bear_score
+total_bull = math.max(0, total_bull_raw - pace_penalty)
+total_bear = math.max(0, total_bear_raw - pace_penalty)
+
+// Active bias = whichever side scores higher (for HUD display)
+sniper_bias  = total_bull >= total_bear ? 1 : -1
+active_t1    = sniper_bias == 1 ? t1_bull_score : t1_bear_score
+active_t2    = sniper_bias == 1 ? t2_bull_score : t2_bear_score
+active_t4    = sniper_bias == 1 ? t4_bull_score : t4_bear_score
+active_total = sniper_bias == 1 ? total_bull : total_bear
+
+// Detect which trigger pattern is active (for HUD display)
+has_ib_trigger = combi_bull_ib or combi_bear_ib or mem_combi_bull or mem_combi_bear
+has_alt_trigger = bull_engulf or bear_engulf or bull_pinbar or bear_pinbar
+
+// Quality classification
+string quality_label = active_total >= 9 ? "★★★ SNIPER" : active_total >= 7 ? "★★ HIGH-PROB" : active_total >= min_score ? "★ MODERATE" : "✗ NO SETUP"
+color quality_color  = active_total >= 9 ? color.new(#00e676, 0) : active_total >= 7 ? color.new(#4caf50, 0) : active_total >= min_score ? color.new(#ffeb3b, 0) : color.new(#888888, 0)
+
+// E7: Enhanced Entry Quality Matrix — new CATALYST BREAK category
+// DBL PRESSURE  = buildup + Inside Bar break (best)
+// CATALYST BREAK = buildup + alternative trigger (Engulfing/Pinbar/Memory — good)
+// TEASE BREAK   = catalyst present but no trigger confirmed
+// NAKED BREAK   = no catalyst, no trigger (lowest)
+string entry_type    = t3_score >= 1 and has_ib_trigger ? "DBL PRESSURE" : t3_score >= 1 and has_alt_trigger ? "CATALYST BREAK" : t3_score >= 1 and active_t4 == 0 ? "TEASE BREAK" : t3_score == 0 and active_t4 >= 1 ? "TEASE BREAK" : "NAKED BREAK"
+color entry_type_css = entry_type == "DBL PRESSURE" ? color.new(#00e676, 0) : entry_type == "CATALYST BREAK" ? color.new(#26c6da, 0) : entry_type == "TEASE BREAK" ? color.new(#ffeb3b, 0) : color.new(#ff5252, 0)
+
+// --- 7I. Signal Generation ---
+var int last_bull_bar = 0
+var int last_bear_bar = 0
+
+// E6: Signal fires with any valid trigger (expanded from combi-only hard lock)
+// Gate: total score ≥ threshold + T1 context + ANY trigger confirmed + cooldown elapsed
+sniper_bull_signal = sniper_enabled and total_bull >= min_score and t1_bull_score >= 1 and trigger_bull and (n - last_bull_bar) > cooldown_bars
+sniper_bear_signal = sniper_enabled and total_bear >= min_score and t1_bear_score >= 1 and trigger_bear and (n - last_bear_bar) > cooldown_bars
+
+if sniper_bull_signal
+    last_bull_bar := n
+if sniper_bear_signal
+    last_bear_bar := n
+
+// --- 7J. Entry / SL / TP Calculation ---
+var float sniper_entry = na
+var float sniper_sl    = na
+var float sniper_tp    = na
+var int   sniper_dir   = 0
+
+if sniper_bull_signal
+    sniper_entry := close
+    sniper_sl    := low - 0.5 * atr
+    sniper_tp    := close + (close - (low - 0.5 * atr)) * rr_ratio
+    sniper_dir   := 1
+
+if sniper_bear_signal
+    sniper_entry := close
+    sniper_sl    := high + 0.5 * atr
+    sniper_tp    := close - ((high + 0.5 * atr) - close) * rr_ratio
+    sniper_dir   := -1
+
+// --- 7K. Signal Plotshapes ---
+plotshape(sniper_bull_signal, title="Sniper Bull Dot", location=location.belowbar, style=shape.circle, color=sniper_bull_color, size=size.tiny)
+plotshape(sniper_bear_signal, title="Sniper Bear Dot", location=location.abovebar, style=shape.circle, color=sniper_bear_color, size=size.tiny)
+
+// --- 7L. Signal Labels (detailed info on each signal) ---
+if sniper_bull_signal
+    bull_txt = str.tostring(total_bull) + "/10\n" + quality_label + "\nE:" + str.tostring(close, format.mintick) + "\nSL:" + str.tostring(sniper_sl, format.mintick) + "\nTP:" + str.tostring(sniper_tp, format.mintick) 
+    label.new(n, low - atr * 1.2, bull_txt, color=color.new(sniper_bull_color, 85), textcolor=sniper_bull_color, style=label.style_label_up, size=size.tiny)
+
+if sniper_bear_signal
+    bear_txt = str.tostring(total_bear) + "/10\n" + quality_label + "\nE:" + str.tostring(close, format.mintick) + "\nSL:" + str.tostring(sniper_sl, format.mintick) + "\nTP:" + str.tostring(sniper_tp, format.mintick)
+    label.new(n, high + atr * 1.2, bear_txt, color=color.new(sniper_bear_color, 85), textcolor=sniper_bear_color, style=label.style_label_down, size=size.tiny)
+
+// --- 7M. SL / TP / Entry Lines (last signal only) ---
+var line sniper_entry_line = na
+var line sniper_sl_line    = na
+var line sniper_tp_line    = na
+var label sniper_entry_lbl = na
+var label sniper_sl_lbl    = na
+var label sniper_tp_lbl    = na
+
+if sniper_bull_signal or sniper_bear_signal
+    line.delete(sniper_entry_line)
+    line.delete(sniper_sl_line)
+    line.delete(sniper_tp_line)
+    label.delete(sniper_entry_lbl)
+    label.delete(sniper_sl_lbl)
+    label.delete(sniper_tp_lbl)
+
+    color sig_css = sniper_bull_signal ? sniper_bull_color : sniper_bear_color
+    sniper_entry_line := line.new(n, sniper_entry, n + 50, sniper_entry, color=sig_css, style=line.style_dashed, width=1)
+    sniper_sl_line    := line.new(n, sniper_sl, n + 50, sniper_sl, color=color.new(#ff5252, 50), style=line.style_dotted, width=1)
+    sniper_tp_line    := line.new(n, sniper_tp, n + 50, sniper_tp, color=color.new(#00e676, 50), style=line.style_dotted, width=1)
+    sniper_entry_lbl  := label.new(n + 50, sniper_entry, "Entry", color=TRANSP_CSS, textcolor=sig_css, style=label.style_label_left, size=size.tiny)
+    sniper_sl_lbl     := label.new(n + 50, sniper_sl, "SL", color=TRANSP_CSS, textcolor=#ff5252, style=label.style_label_left, size=size.tiny)
+    sniper_tp_lbl     := label.new(n + 50, sniper_tp, "TP", color=TRANSP_CSS, textcolor=#00e676, style=label.style_label_left, size=size.tiny)
+
+// --- 7N. Round Number Magnet Warning ---
+var label magnet_lbl = na
+if barstate.islast and sniper_enabled
+    label.delete(magnet_lbl)
+    if magnet_warning
+        magnet_lbl := label.new(n, high + atr * 0.3, "⚠ MAGNET\n" + str.tostring(nearest_round, format.mintick), color=color.new(#ff9800, 80), textcolor=#ff9800, style=label.style_label_down, size=size.tiny)
+
+// --- 7O. 25EMA Plot ---
+plot(sniper_enabled ? ema25 : na, title="25EMA Kill Zone", color=color.new(#ff9800, 40), linewidth=4)
+
+// --- 7P. Sniper Alerts ---
+alertcondition(sniper_bull_signal, 'Sniper LONG Entry', 'Sniper LONG Entry Signal — Check chart for score and levels')
+alertcondition(sniper_bear_signal, 'Sniper SHORT Entry', 'Sniper SHORT Entry Signal — Check chart for score and levels')
+alertcondition((sniper_bull_signal and total_bull >= 9) or (sniper_bear_signal and total_bear >= 9), 'Sniper A+ Setup', 'A+ Grade Sniper Setup — Score 9+/10 detected')
+
+// --- 7Q. Sniper HUD Table (bottom-left) ---
+f_dots3(score) => (score >= 1 ? "●" : "○") + (score >= 2 ? "●" : "○") + (score >= 3 ? "●" : "○")
+f_dots2(score) => (score >= 1 ? "●" : "○") + (score >= 2 ? "●" : "○")
+
+var table sniper_tbl = table.new(position.bottom_left, 2, 12, bgcolor=color.new(#0d1117, 10), border_width=1, border_color=color.new(#30363d, 50))
+
+if barstate.islast and sniper_enabled
+    color s_hdr  = #e6edf3
+    color s_lbl  = #8b949e
+    color s_bull = #00e676
+    color s_bear = #ff5252
+
+    // Row 0: Header
+    table.cell(sniper_tbl, 0, 0, "🎯 SNIPER", text_color=s_hdr, text_size=size.small, text_halign=text.align_left)
+    table.cell(sniper_tbl, 1, 0, "ENTRY SYSTEM", text_color=s_hdr, text_size=size.small, text_halign=text.align_right)
+
+    // Row 1: Tier 1 — Context
+    color t1_css = active_t1 >= 2 ? s_bull : active_t1 >= 1 ? #ffeb3b : #888888
+    table.cell(sniper_tbl, 0, 1, "T1 Context", text_color=s_lbl, text_size=size.tiny, text_halign=text.align_left)
+    table.cell(sniper_tbl, 1, 1, f_dots3(active_t1) + " " + str.tostring(active_t1) + "/3", text_color=t1_css, text_size=size.tiny, text_halign=text.align_right)
+
+    // Row 2: Tier 2 — Kill Zone
+    color t2_css = active_t2 >= 2 ? s_bull : active_t2 >= 1 ? #ffeb3b : #888888
+    table.cell(sniper_tbl, 0, 2, "T2 Kill Zone", text_color=s_lbl, text_size=size.tiny, text_halign=text.align_left)
+    table.cell(sniper_tbl, 1, 2, f_dots3(active_t2) + " " + str.tostring(active_t2) + "/3", text_color=t2_css, text_size=size.tiny, text_halign=text.align_right)
+
+    // Row 3: Tier 3 — Catalyst
+    color t3_css = t3_score >= 2 ? s_bull : t3_score >= 1 ? #ffeb3b : #888888
+    table.cell(sniper_tbl, 0, 3, "T3 Catalyst", text_color=s_lbl, text_size=size.tiny, text_halign=text.align_left)
+    table.cell(sniper_tbl, 1, 3, f_dots2(t3_score) + " " + str.tostring(t3_score) + "/2", text_color=t3_css, text_size=size.tiny, text_halign=text.align_right)
+
+    // Row 4: Tier 4 — Trigger
+    color t4_css = active_t4 >= 2 ? s_bull : active_t4 >= 1 ? #ffeb3b : #888888
+    table.cell(sniper_tbl, 0, 4, "T4 Trigger", text_color=s_lbl, text_size=size.tiny, text_halign=text.align_left)
+    table.cell(sniper_tbl, 1, 4, f_dots2(active_t4) + " " + str.tostring(active_t4) + "/2", text_color=t4_css, text_size=size.tiny, text_halign=text.align_right)
+
+    // Row 5: Total Score
+    string total_str = str.tostring(active_total) + "/10"
+    string pass_str  = active_total >= min_score ? " ✅" : " ❌"
+    color pace_bg    = is_frantic ? color.new(#ff5252, 80) : color.new(#0d1117, 10)
+    table.cell(sniper_tbl, 0, 5, "TOTAL", text_color=s_hdr, text_size=size.tiny, text_halign=text.align_left, bgcolor=pace_bg)
+    table.cell(sniper_tbl, 1, 5, total_str + pass_str, text_color=quality_color, text_size=size.tiny, text_halign=text.align_right, bgcolor=pace_bg)
+
+    // Row 6: Quality Grade
+    table.cell(sniper_tbl, 0, 6, "Quality", text_color=s_lbl, text_size=size.tiny, text_halign=text.align_left)
+    table.cell(sniper_tbl, 1, 6, quality_label, text_color=quality_color, text_size=size.tiny, text_halign=text.align_right)
+
+    // Row 7: Bias
+    string bias_str = sniper_bias == 1 ? "🟢 LONG" : "🔴 SHORT"
+    color bias_css  = sniper_bias == 1 ? s_bull : s_bear
+    table.cell(sniper_tbl, 0, 7, "Bias", text_color=s_lbl, text_size=size.tiny, text_halign=text.align_left)
+    table.cell(sniper_tbl, 1, 7, bias_str, text_color=bias_css, text_size=size.tiny, text_halign=text.align_right)
+
+    // Row 8: Entry Quality Matrix Type
+    color magnet_bg = magnet_warning ? color.new(#ff9800, 80) : color.new(#0d1117, 10)
+    table.cell(sniper_tbl, 0, 8, "Type", text_color=s_lbl, text_size=size.tiny, text_halign=text.align_left, bgcolor=magnet_bg)
+    table.cell(sniper_tbl, 1, 8, entry_type, text_color=entry_type_css, text_size=size.tiny, text_halign=text.align_right, bgcolor=magnet_bg)
+
+    // Row 9–11: Last Signal Entry / SL / TP
+    string entry_str = not na(sniper_entry) ? str.tostring(sniper_entry, format.mintick) : "---"
+    string sl_str    = not na(sniper_sl) ? str.tostring(sniper_sl, format.mintick) : "---"
+    string tp_str    = not na(sniper_tp) ? str.tostring(sniper_tp, format.mintick) : "---"
+
+    table.cell(sniper_tbl, 0, 9, "Entry", text_color=s_lbl, text_size=size.tiny, text_halign=text.align_left)
+    table.cell(sniper_tbl, 1, 9, entry_str, text_color=s_hdr, text_size=size.tiny, text_halign=text.align_right)
+
+    table.cell(sniper_tbl, 0, 10, "SL", text_color=s_lbl, text_size=size.tiny, text_halign=text.align_left)
+    table.cell(sniper_tbl, 1, 10, sl_str, text_color=s_bear, text_size=size.tiny, text_halign=text.align_right)
+
+    table.cell(sniper_tbl, 0, 11, "TP", text_color=s_lbl, text_size=size.tiny, text_halign=text.align_left)
+    table.cell(sniper_tbl, 1, 11, tp_str, text_color=s_bull, text_size=size.tiny, text_halign=text.align_right)
+
