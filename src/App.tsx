@@ -1,28 +1,22 @@
-import { useState } from 'react'
+import { Route, Routes } from 'react-router-dom';
+
+import DashboardLayout from './components/layout/DashboardLayout';
+import MacroPanel from './pages/MacroPanel';
 
 function App() {
-  const [clickCount, setClickCount] = useState(0)
-
   return (
-    <div className="card">
-      <div className="card-content">
-        <div className="badge">
-          <span className="glow-dot"></span>
-          React &bull; TS &bull; Vite
-        </div>
-        <h1 className="title">Hello World</h1>
-        <p className="subtitle">
-          Welcome to your new premium single-page application. Built with absolute design excellence, smooth motion, and extreme performance.
-        </p>
-        <button className="btn" onClick={() => setClickCount(prev => prev + 1)}>
-          ✨ Interacted {clickCount} {clickCount === 1 ? 'time' : 'times'}
-        </button>
-        <div className="footer">
-          Localhost Running &bull; Port 3000
-        </div>
-      </div>
-    </div>
-  )
+    <Routes>
+      <Route path="/" element={<DashboardLayout />}>
+        <Route index element={<MacroPanel />} />
+        {/* Placeholders for other panels */}
+        <Route path="cot" element={<div className="p-8 text-white">COT Intel Panel (In Progress)</div>} />
+        <Route path="structure" element={<div className="p-8 text-white">Market Structure Panel (In Progress)</div>} />
+        <Route path="price-action" element={<div className="p-8 text-white">Price Action Panel (In Progress)</div>} />
+        <Route path="algo" element={<div className="p-8 text-white">Algo Metrics Panel (In Progress)</div>} />
+        <Route path="risk" element={<div className="p-8 text-white">Risk Gate Panel (In Progress)</div>} />
+      </Route>
+    </Routes>
+  );
 }
 
-export default App
+export default App;
