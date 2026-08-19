@@ -11,17 +11,17 @@ interface BinanceKline {
   5: string;
 }
 
-/** Free Binance REST klines — no API key, replaces FRED/Yahoo for XAUUSDT history */
+/** Free Binance USD-M Futures klines — XAUUSDT is futures-only (not on spot API) */
 export async function fetchBinanceDailyBars(
   symbol = 'XAUUSDT',
   limit = 200
 ): Promise<YahooChartBar[]> {
-  const cacheKey = `binance:klines:${symbol}:${limit}`;
+  const cacheKey = `binance-futures:klines:${symbol}:${limit}`;
 
   return cachedFetch(cacheKey, async () => {
     const params = new URLSearchParams({ symbol, interval: '1d', limit: String(limit) });
     const res = await enqueue('binance', () =>
-      fetch(`/api/binance/api/v3/klines?${params}`)
+      fetch(`/api/binance-futures/fapi/v1/klines?${params}`)
     );
     if (!res.ok) throw new Error(`Binance klines ${symbol}: ${res.status}`);
 

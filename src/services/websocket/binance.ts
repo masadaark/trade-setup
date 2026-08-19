@@ -36,5 +36,9 @@ export function parseBinanceMessage(raw: string, fallbackSymbol = 'GC=F'): Price
 }
 
 export function createBinanceWsUrl(stream: string): string {
+  // XAUUSDT trades on USD-M futures — not Binance spot
+  if (stream.toLowerCase().startsWith('xau')) {
+    return `wss://fstream.binance.com/ws/${stream}`;
+  }
   return `wss://stream.binance.com:9443/ws/${stream}`;
 }

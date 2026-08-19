@@ -15,7 +15,13 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/fred/, '/fred'),
       },
-      // Binance REST klines (free, no API key — gold history)
+      // Binance USD-M Futures (XAUUSDT gold — not available on spot API)
+      '/api/binance-futures': {
+        target: 'https://fapi.binance.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/binance-futures/, ''),
+      },
+      // Binance spot (reserved — e.g. PAXGUSDT if needed later)
       '/api/binance': {
         target: 'https://api.binance.com',
         changeOrigin: true,
