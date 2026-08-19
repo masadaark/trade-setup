@@ -9,7 +9,7 @@ export const env = {
     url: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
     wsUrl: import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws',
   },
-  
+
   // 3rd Party Services (อ้างอิงตาม Data Source Matrix)
   thirdParty: {
     // DS-1: Yahoo Finance (Unofficial REST) - ไม่ต้องใช้ API Key
@@ -24,12 +24,12 @@ export const env = {
     // DS-3: CFTC COT Reports (ผ่าน Quandl/Nasdaq Data Link)
     quandl: {
       baseUrl: 'https://data.nasdaq.com/api/v3',
-      apiKey: import.meta.env.VITE_QUANDL_API_KEY || '',
+      apiKey: import.meta.env.VITE_QUANDL_API_KEY || '64uLnCBbSq3xFwjyFfQ6',
     },
     // DS-4: Alpha Vantage (Fallback)
     alphaVantage: {
       baseUrl: 'https://www.alphavantage.co/query',
-      apiKey: import.meta.env.VITE_ALPHA_VANTAGE_API_KEY || '',
+      apiKey: import.meta.env.VITE_ALPHA_VANTAGE_API_KEY || '176Y8LNVYLYKAA9K',
     }
   },
 
