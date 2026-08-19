@@ -5,7 +5,8 @@ import { Badge } from '../components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { DataState, StatValue } from '../components/ui/data-state';
 import { useCotData } from '../hooks/useCotData';
-import { type CotAsset } from '../services/quandlApi';
+import { type CotAsset } from '../services/cftcApi';
+import { interpretCotSignal, computeCommercialNet } from '../services/marketAnalysis';
 import { cn } from '../lib/utils';
 
 const ASSET_OPTIONS: { value: CotAsset; label: string; description: string }[] = [
@@ -15,14 +16,6 @@ const ASSET_OPTIONS: { value: CotAsset; label: string; description: string }[] =
   { value: 'gbpusd', label: 'GBP/USD', description: 'British Pound futures speculative positioning' },
   { value: 'sp500', label: 'S&P 500', description: 'E-mini S&P 500 speculative positioning' },
 ];
-
-function interpretNet(net: number): { variant: 'bullish' | 'bearish' | 'neutral'; label: string } {
-  if (net > 50_000) return { variant: 'bullish', label: 'Extreme Long' };
-  if (net > 10_000) return { variant: 'bullish', label: 'Net Long' };
-  if (net < -50_000) return { variant: 'bearish', label: 'Extreme Short' };
-  if (net < -10_000) return { variant: 'bearish', label: 'Net Short' };
-  return { variant: 'neutral', label: 'Neutral' };
-}
 
 function formatNet(n: number): string {
   const abs = Math.abs(n);
@@ -37,16 +30,11 @@ function CotPanel() {
 
   const { data, latestRecord, isLoading, error, refetch } = useCotData(selectedAsset);
 
-  const interpretation = latestRecord ? interpretNet(latestRecord.netNonCommercial) : null;
+  const cotSignal = interpretCotSignal(data);
+  const interpretation = data.length > 0 ? cotSignal : null;
 
-  // Compute COT Index percentile (position of current net vs 52-week range)
-  const netValues = data.map((d) => d.netNonCommercial);
-  const min = netValues.length > 0 ? Math.min(...netValues) : 0;
-  const max = netValues.length > 0 ? Math.max(...netValues) : 0;
-  const cotIndex =
-    latestRecord && max !== min
-      ? Math.round(((latestRecord.netNonCommercial - min) / (max - min)) * 100)
-      : null;
+  // COT Index percentile (brain: normalize net position vs historical range)
+  const cotIndex = cotSignal.cotIndex;
 
   return (
     <div className="space-y-6">
@@ -70,7 +58,7 @@ function CotPanel() {
           </TabsList>
         </Tabs>
         <span className="text-xs text-muted-foreground">
-          Source: CFTC via Quandl/Nasdaq Data Link
+          Source: CFTC Open Data (publicreporting.cftc.gov)
         </span>
       </div>
 
@@ -95,17 +83,17 @@ function CotPanel() {
                     ) : (
                       <Minus size={12} />
                     )}
-                    {interpretation.label}
+                    {interpretation.specLabel}
                   </Badge>
                 )}
               </div>
               <CardTitle className="text-xl mt-2">
-                Institutional Positioning:{' '}
-                {interpretation?.label ?? '—'}
+                Speculator Positioning:{' '}
+                {interpretation?.specLabel ?? '—'}
               </CardTitle>
               <CardDescription>
                 {latestRecord
-                  ? `Latest CFTC report: ${latestRecord.date}. Do not trade against institutional money flow.`
+                  ? `Latest CFTC report: ${latestRecord.date}. Commercial: ${cotSignal.commercialLabel}${cotSignal.aggressiveCommercial ? ' — aggressive institutional action detected' : ''}.`
                   : 'Loading positioning data…'}
               </CardDescription>
             </CardHeader>
@@ -146,12 +134,12 @@ function CotPanel() {
                     <StatValue
                       value={
                         latestRecord
-                          ? formatNet(latestRecord.commercialLong - latestRecord.commercialShort)
+                          ? formatNet(computeCommercialNet(latestRecord))
                           : null
                       }
                     />
                   </span>
-                  <span className="text-xs text-muted-foreground">Net hedge contracts</span>
+                  <span className="text-xs text-muted-foreground">{cotSignal.commercialLabel}</span>
                 </div>
 
                 {/* COT Index */}
@@ -172,7 +160,15 @@ function CotPanel() {
                     <StatValue value={cotIndex !== null ? `${cotIndex}%` : null} />
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {(cotIndex ?? 50) >= 70 ? 'Extreme bullish' : (cotIndex ?? 50) <= 30 ? 'Extreme bearish' : 'Neutral range'}
+                    {cotIndex !== null && cotIndex >= 90
+                      ? 'Crowded long — contrarian caution'
+                      : cotIndex !== null && cotIndex <= 10
+                      ? 'Crowded short — contrarian opportunity'
+                      : cotIndex !== null && cotIndex >= 70
+                      ? 'Bullish percentile'
+                      : cotIndex !== null && cotIndex <= 30
+                      ? 'Bearish percentile'
+                      : 'Neutral range'}
                   </span>
                 </div>
               </div>

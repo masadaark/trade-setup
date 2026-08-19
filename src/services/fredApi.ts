@@ -1,4 +1,7 @@
 import env from '../config/env';
+import { cachedFetch } from './cache';
+import { enqueue } from './requestQueue';
+import type { YahooChartBar } from './yahooFinanceApi';
 
 export interface FredObservation {
   date: string;
@@ -10,7 +13,7 @@ export interface FredSeriesResponse {
 }
 
 /** Fetch the last N observations for a FRED series (uses Vite dev proxy /api/fred) */
-async function fetchSeries(
+export async function fetchSeries(
   series: string,
   limit = 24
 ): Promise<FredObservation[]> {
@@ -25,7 +28,7 @@ async function fetchSeries(
     limit: String(limit),
   });
 
-  const res = await fetch(`/api/fred/series/observations?${params}`);
+  const res = await enqueue('fred', () => fetch(`/api/fred/series/observations?${params}`));
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`FRED ${series}: ${res.status} ${text.slice(0, 100)}`);
@@ -53,6 +56,41 @@ export async function fetchCPI(): Promise<FredObservation[]> {
 /** Fed Reserve Balance Sheet – Total Assets (weekly) */
 export async function fetchBalanceSheet(): Promise<FredObservation[]> {
   return fetchSeries('WALCL', 52);
+}
+
+/** FRED series — DXY & S&P only (Gold uses Binance REST + WS) */
+export const FRED_MARKET_SERIES: Record<string, string> = {
+  'DX-Y.NYB': 'DTWEXBGS',
+  'ES=F': 'SP500',
+};
+
+export function isFredSymbol(symbol: string): boolean {
+  return symbol in FRED_MARKET_SERIES;
+}
+
+/** Daily price bars from a FRED series */
+export async function fetchFredBars(seriesId: string, lookbackDays = 400): Promise<YahooChartBar[]> {
+  const cacheKey = `fred:bars:${seriesId}:${lookbackDays}`;
+  const limit = Math.min(lookbackDays + 10, 1000);
+
+  return cachedFetch(cacheKey, async () => {
+    const observations = await fetchSeries(seriesId, limit);
+    const bars = observations
+      .filter((o) => o.value !== '.')
+      .map((o) => {
+        const close = parseFloat(o.value);
+        return {
+          time: Math.floor(new Date(o.date).getTime() / 1000),
+          open: close,
+          high: close,
+          low: close,
+          close,
+          volume: 0,
+        };
+      });
+    if (bars.length === 0) throw new Error(`FRED ${seriesId}: no data`);
+    return bars;
+  }, 30 * 60 * 1000);
 }
 
 /** Latest single value from a FRED series */

@@ -3,22 +3,13 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../co
 import { Badge } from '../components/ui/badge';
 import { DataState, StatValue } from '../components/ui/data-state';
 import { useFredSeries } from '../hooks/useFredData';
-import { useQuote } from '../hooks/useMarketData';
+import { useQuote, useCurrencyStrength } from '../hooks/useMarketData';
+import { computeMacroRegime } from '../services/marketAnalysis';
 import { cn } from '../lib/utils';
 
-// Static currency strength — no free real-time FX strength API
-const currencies = [
-  { symbol: 'AUD', change: '+1.24%', direction: 'up' },
-  { symbol: 'NZD', change: '+0.85%', direction: 'up' },
-  { symbol: 'CAD', change: '+0.42%', direction: 'up' },
-  { symbol: 'EUR', change: '+0.15%', direction: 'up' },
-  { symbol: 'GBP', change: '-0.08%', direction: 'down' },
-  { symbol: 'CHF', change: '-0.35%', direction: 'down' },
-  { symbol: 'JPY', change: '-0.62%', direction: 'down' },
-  { symbol: 'USD', change: '-0.88%', direction: 'down' },
-];
-
+// Currency strength computed from live FX daily changes
 function MacroPanel() {
+  const currencyStrength = useCurrencyStrength();
   const fedFunds = useFredSeries('fedFunds');
   const yieldSpread = useFredSeries('yieldSpread');
   const cpi = useFredSeries('cpi');
@@ -51,6 +42,15 @@ function MacroPanel() {
 
   const hasFredError =
     fedFunds.error || yieldSpread.error || cpi.error || balanceSheet.error;
+
+  const macroRegime = computeMacroRegime({
+    fedFundsRate: fedFunds.latestValue,
+    fedFundsPrev: fedFunds.prevValue,
+    yieldSpread: yieldSpread.latestValue,
+    cpiYoY: cpiYoY !== null ? parseFloat(cpiYoY) : null,
+    goldChangePct: gold.quote?.regularMarketChangePercent ?? null,
+    dxyChangePct: dxy.quote?.regularMarketChangePercent ?? null,
+  });
 
   return (
     <div className="space-y-6">
@@ -85,37 +85,20 @@ function MacroPanel() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <Badge variant="bullish" className="gap-1">
-              <TrendingUp size={12} />
-              Bullish Growth Regime
+            <Badge variant={macroRegime.variant} className="gap-1">
+              {macroRegime.verdict === 'LONG' ? <TrendingUp size={12} /> : macroRegime.verdict === 'SHORT' ? <TrendingDown size={12} /> : null}
+              {macroRegime.label}
             </Badge>
-            <span className="text-xs text-muted-foreground">Source: FRED &amp; Yahoo Finance</span>
+            <span className="text-xs text-muted-foreground">Source: Binance WS + FRED + Frankfurter</span>
           </div>
-          <CardTitle className="text-xl mt-2">Overall Macro Verdict: LONG BIAS</CardTitle>
-          <CardDescription>Focus on risk assets and Gold. Avoid USD strength plays.</CardDescription>
+          <CardTitle className="text-xl mt-2">
+            Overall Macro Verdict: {macroRegime.verdict} BIAS
+          </CardTitle>
+          <CardDescription>{macroRegime.description}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {[
-              {
-                label: '1. Fed Rate Direction',
-                value: 'Rate cycle peak — cuts expected',
-                note: '→ Bullish for Gold & equities',
-                sentiment: 'success',
-              },
-              {
-                label: '2. US Inflation (CPI)',
-                value: 'Declining toward 2% target',
-                note: '→ Reduces USD upside pressure',
-                sentiment: 'success',
-              },
-              {
-                label: '3. Recession Risk',
-                value: 'Yield spread improving',
-                note: '→ Inversion risk fading',
-                sentiment: yieldNeg ? 'danger' : 'success',
-              },
-            ].map((item) => (
+            {macroRegime.factors.map((item) => (
               <div key={item.label} className="rounded-md bg-muted/50 p-3 space-y-1">
                 <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   {item.label}
@@ -124,7 +107,11 @@ function MacroPanel() {
                 <span
                   className={cn(
                     'text-xs font-mono',
-                    item.sentiment === 'success' ? 'text-success' : 'text-danger'
+                    item.sentiment === 'success'
+                      ? 'text-success'
+                      : item.sentiment === 'danger'
+                      ? 'text-danger'
+                      : 'text-warning'
                   )}
                 >
                   {item.note}
@@ -306,11 +293,17 @@ function MacroPanel() {
         <Card className="lg:col-span-5">
           <CardHeader>
             <CardTitle className="text-sm">Currency Strength Ranking</CardTitle>
-            <CardDescription>Sorted strongest → weakest (illustrative, no real-time FX API)</CardDescription>
+            <CardDescription>Daily % change vs prior close — Frankfurter ECB rates</CardDescription>
           </CardHeader>
           <CardContent>
+            <DataState
+              isLoading={currencyStrength.isLoading}
+              error={currencyStrength.error}
+              onRetry={currencyStrength.refetch}
+            />
+            {!currencyStrength.isLoading && !currencyStrength.error && (
             <div className="grid grid-cols-2 gap-2">
-              {currencies.map((c) => (
+              {currencyStrength.currencies.map((c) => (
                 <div
                   key={c.symbol}
                   className={cn(
@@ -328,6 +321,7 @@ function MacroPanel() {
                 </div>
               ))}
             </div>
+            )}
           </CardContent>
         </Card>
       </div>

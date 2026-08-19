@@ -157,7 +157,7 @@ function AlgoPanel() {
             ))}
           </TabsList>
         </Tabs>
-        <span className="text-xs text-muted-foreground">Source: Yahoo Finance (real-time)</span>
+        <span className="text-xs text-muted-foreground">Source: Binance WS / Finnhub WS / REST</span>
       </div>
 
       {/* Metrics display */}

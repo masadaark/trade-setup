@@ -1,17 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calculator, DollarSign, Percent, ShieldCheck, X } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { DataState } from '../components/ui/data-state';
+import { useTradeSetups } from '../hooks/useMarketData';
 import { cn } from '../lib/utils';
 
 function RiskPanel() {
+  const { bestSetup, isLoading, error, refetch } = useTradeSetups();
+
   const [accountBalance, setAccountBalance] = useState(10000);
   const [riskPercent, setRiskPercent] = useState(1.0);
-  const [entryPrice, setEntryPrice] = useState(2641.50);
-  const [stopLossPrice, setStopLossPrice] = useState(2633.00);
-  const [takeProfitPrice, setTakeProfitPrice] = useState(2670.00);
+  const [entryPrice, setEntryPrice] = useState(0);
+  const [stopLossPrice, setStopLossPrice] = useState(0);
+  const [takeProfitPrice, setTakeProfitPrice] = useState(0);
 
-  // Position sizing calculations
+  useEffect(() => {
+    if (bestSetup) {
+      setEntryPrice(bestSetup.entry);
+      setStopLossPrice(bestSetup.sl);
+      setTakeProfitPrice(bestSetup.tp);
+    }
+  }, [bestSetup]);
+
   const riskAmount = (accountBalance * riskPercent) / 100;
   const stopLossDistance = Math.abs(entryPrice - stopLossPrice);
   const takeProfitDistance = Math.abs(takeProfitPrice - entryPrice);
@@ -20,7 +31,6 @@ function RiskPanel() {
   const rr = stopLossDistance > 0 ? (takeProfitDistance / stopLossDistance).toFixed(2) : '—';
   const potentialProfit = positionUnits * takeProfitDistance;
 
-  // Risk gate checks
   const rrNumeric = parseFloat(rr);
   const checks = [
     {
@@ -44,7 +54,6 @@ function RiskPanel() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
       <div>
         <h2 className="text-lg font-semibold">Risk Gate</h2>
         <p className="text-sm text-muted-foreground mt-0.5">
@@ -52,7 +61,8 @@ function RiskPanel() {
         </p>
       </div>
 
-      {/* Overall gate status */}
+      <DataState isLoading={isLoading} error={error} onRetry={refetch} />
+
       <div
         className={cn(
           'rounded-md border px-4 py-3 flex items-center justify-between gap-3',
@@ -66,7 +76,9 @@ function RiskPanel() {
             Risk Gate: {allPassed ? 'APPROVED — Safe to execute' : 'BLOCKED — Adjust parameters'}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {allPassed
+            {bestSetup
+              ? `Pre-filled from live ${bestSetup.asset} setup (${bestSetup.type}).`
+              : allPassed
               ? 'All risk checks passed. Your position sizing is within safe limits.'
               : 'One or more risk checks failed. Do not enter this trade.'}
           </p>
@@ -77,7 +89,6 @@ function RiskPanel() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Calculator */}
         <Card className="lg:col-span-7">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -88,14 +99,12 @@ function RiskPanel() {
               <Badge variant="muted">Forex / CFD</Badge>
             </div>
             <CardDescription>
-              Enter your account details and trade levels to calculate the safe lot size
+              Entry/SL/TP auto-loaded from best live Price Action setup
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-4">
-            {/* Inputs */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Account Balance */}
               <div className="space-y-1.5">
                 <label htmlFor="account-balance" className="text-xs font-medium text-muted-foreground">
                   Account Balance ($)
@@ -116,7 +125,6 @@ function RiskPanel() {
                 </div>
               </div>
 
-              {/* Risk % */}
               <div className="space-y-1.5">
                 <label htmlFor="risk-percent" className="text-xs font-medium text-muted-foreground">
                   Risk per Trade (%)
@@ -140,7 +148,6 @@ function RiskPanel() {
                 </div>
               </div>
 
-              {/* Entry */}
               <div className="space-y-1.5">
                 <label htmlFor="entry-price" className="text-xs font-medium text-muted-foreground">
                   Entry Price ($)
@@ -159,7 +166,6 @@ function RiskPanel() {
                 />
               </div>
 
-              {/* Stop Loss */}
               <div className="space-y-1.5">
                 <label htmlFor="stop-loss" className="text-xs font-medium text-muted-foreground">
                   Stop Loss ($)
@@ -179,7 +185,6 @@ function RiskPanel() {
                 />
               </div>
 
-              {/* Take Profit */}
               <div className="space-y-1.5 col-span-2">
                 <label htmlFor="take-profit" className="text-xs font-medium text-muted-foreground">
                   Take Profit ($)
@@ -200,7 +205,6 @@ function RiskPanel() {
               </div>
             </div>
 
-            {/* Result */}
             <div className="rounded-md bg-muted/50 border border-border p-4 grid grid-cols-2 gap-4">
               <div>
                 <span className="text-xs text-muted-foreground block">Recommended Lot Size</span>
@@ -231,7 +235,6 @@ function RiskPanel() {
           </CardContent>
         </Card>
 
-        {/* Checklist */}
         <Card className="lg:col-span-5">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -268,7 +271,7 @@ function RiskPanel() {
             <div className="rounded-md bg-muted/40 border border-border px-3 py-2.5 text-xs text-muted-foreground mt-3 leading-relaxed">
               <strong className="text-foreground">System verdict:</strong>{' '}
               {allPassed
-                ? `All checks passed. Execute BUY at $${entryPrice} with ${lotSize} lots. Max drawdown: $${riskAmount.toFixed(2)}.`
+                ? `All checks passed. Execute at $${entryPrice.toFixed(2)} with ${lotSize} lots. Max drawdown: $${riskAmount.toFixed(2)}.`
                 : 'Adjust your trade parameters until all checks pass before executing.'}
             </div>
           </CardContent>

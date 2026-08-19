@@ -26,11 +26,15 @@ export const env = {
       baseUrl: 'https://data.nasdaq.com/api/v3',
       apiKey: import.meta.env.VITE_QUANDL_API_KEY || '64uLnCBbSq3xFwjyFfQ6',
     },
-    // DS-4: Alpha Vantage (Fallback)
+    // DS-4: Alpha Vantage (manual fallback only — 25 req/day)
     alphaVantage: {
       baseUrl: 'https://www.alphavantage.co/query',
-      apiKey: import.meta.env.VITE_ALPHA_VANTAGE_API_KEY || '176Y8LNVYLYKAA9K',
-    }
+      apiKey: import.meta.env.VITE_ALPHA_VANTAGE_API_KEY || '',
+    },
+    // DS-5: Finnhub WebSocket (free — 60 req/min REST, WS for live FX/stocks)
+    finnhub: {
+      apiKey: import.meta.env.VITE_FINNHUB_API_KEY || '',
+    },
   },
 
   app: {

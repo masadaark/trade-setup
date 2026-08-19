@@ -3,7 +3,7 @@ import {
   fetchCotData,
   type CotRecord,
   type CotAsset,
-} from '../services/quandlApi';
+} from '../services/cftcApi';
 
 interface UseCotResult {
   data: CotRecord[];

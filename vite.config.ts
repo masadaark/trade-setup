@@ -15,11 +15,37 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/fred/, '/fred'),
       },
-      // Yahoo Finance proxy
+      // Binance REST klines (free, no API key — gold history)
+      '/api/binance': {
+        target: 'https://api.binance.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/binance/, ''),
+      },
+      // Frankfurter ECB FX rates (free, no API key, no rate limit issues)
+      '/api/frankfurter': {
+        target: 'https://api.frankfurter.app',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/frankfurter/, ''),
+      },
+      // Yahoo Finance proxy — last resort only (aggressive IP rate limits)
       '/api/yahoo': {
         target: 'https://query1.finance.yahoo.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/yahoo/, ''),
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            proxyReq.setHeader(
+              'User-Agent',
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            );
+          });
+        },
+      },
+      // CFTC Commitments of Traders (free, no API key)
+      '/api/cftc': {
+        target: 'https://publicreporting.cftc.gov',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/cftc/, ''),
       },
       // Alpha Vantage proxy
       '/api/alphavantage': {

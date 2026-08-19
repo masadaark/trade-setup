@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Clock, Moon, Sun, TrendingUp, Minus } from 'lucide-react';
+import { Clock, Moon, Sun, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useTheme } from '../ThemeProvider';
 import { Badge } from '../ui/badge';
+import { useTradeSetups } from '../../hooks/useMarketData';
+import { useLivePrice } from '../../hooks/useLivePrice';
+import { useFredSeries } from '../../hooks/useFredData';
+import { computeMacroRegime, computeGlobalBias } from '../../services/marketAnalysis';
+import { formatPrice } from '../../hooks/useMarketData';
 import { cn } from '../../lib/utils';
 
 function getMarketSession(): { label: string; active: boolean } {
@@ -35,6 +40,21 @@ function ThemeToggle() {
 function Header() {
   const [timeStr, setTimeStr] = useState('');
   const session = getMarketSession();
+  const { bestSetup } = useTradeSetups();
+  const fedFunds = useFredSeries('fedFunds');
+  const gold = useLivePrice('GC=F');
+  const dxy = useLivePrice('DX-Y.NYB');
+
+  const macroRegime = computeMacroRegime({
+    fedFundsRate: fedFunds.latestValue,
+    fedFundsPrev: fedFunds.prevValue,
+    yieldSpread: null,
+    cpiYoY: null,
+    goldChangePct: gold.quote?.regularMarketChangePercent ?? null,
+    dxyChangePct: dxy.quote?.regularMarketChangePercent ?? null,
+  });
+
+  const bias = computeGlobalBias(macroRegime.verdict, bestSetup);
 
   useEffect(() => {
     const update = () => {
@@ -46,6 +66,9 @@ function Header() {
     return () => clearInterval(id);
   }, []);
 
+  const goldPrice = gold.quote?.regularMarketPrice;
+  const goldChg = gold.quote?.regularMarketChangePercent ?? 0;
+
   return (
     <header
       id="app-header"
@@ -54,9 +77,7 @@ function Header() {
         'border-b border-border bg-background/80 backdrop-blur-sm'
       )}
     >
-      {/* Left: Session + Bias */}
       <div className="flex items-center gap-3">
-        {/* Market session */}
         <Badge variant={session.active ? 'success' : 'muted'} className="gap-1.5">
           <span
             className={cn(
@@ -67,27 +88,55 @@ function Header() {
           {session.label}
         </Badge>
 
-        {/* Divider */}
         <div className="hidden md:block h-4 w-px bg-border" />
 
-        {/* Global bias summary — static for now, replace when algo signals are live */}
         <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground">
           <span className="font-medium">Direction:</span>
-          <Badge variant="bullish" className="gap-1">
-            <TrendingUp size={11} />
-            Bullish
+          <Badge
+            variant={
+              bias.direction === 'Bullish'
+                ? 'bullish'
+                : bias.direction === 'Bearish'
+                ? 'bearish'
+                : 'neutral'
+            }
+            className="gap-1"
+          >
+            {bias.direction === 'Bullish' ? (
+              <TrendingUp size={11} />
+            ) : bias.direction === 'Bearish' ? (
+              <TrendingDown size={11} />
+            ) : (
+              <Minus size={11} />
+            )}
+            {bias.direction}
           </Badge>
           <span className="font-medium">Quality:</span>
-          <Badge variant="neutral" className="gap-1">
-            <Minus size={11} />
-            Monitoring
+          <Badge variant={bias.quality === 'Monitoring' ? 'neutral' : 'secondary'} className="gap-1">
+            {bias.quality}
           </Badge>
         </div>
+
+        {goldPrice != null && (
+          <>
+            <div className="hidden lg:block h-4 w-px bg-border" />
+            <div className="hidden lg:flex items-center gap-2 text-xs font-mono">
+              <span className="text-muted-foreground">XAU</span>
+              <span className="font-bold text-foreground">
+                {formatPrice('GC=F', goldPrice)}
+              </span>
+              <span className={cn('font-semibold', goldChg >= 0 ? 'text-success' : 'text-danger')}>
+                {goldChg >= 0 ? '+' : ''}{goldChg.toFixed(2)}%
+              </span>
+              {gold.isLive && (
+                <Badge variant="success" className="text-[10px] px-1 py-0">WS</Badge>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Right: Clock + Theme toggle */}
       <div className="flex items-center gap-3">
-        {/* Live clock */}
         <div
           className={cn(
             'hidden sm:flex items-center gap-1.5',
@@ -100,7 +149,6 @@ function Header() {
           <span className="text-success font-sans font-semibold">LIVE</span>
         </div>
 
-        {/* Theme toggle */}
         <ThemeToggle />
       </div>
     </header>
