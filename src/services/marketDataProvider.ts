@@ -9,9 +9,9 @@ import type { YahooChartBar, YahooQuote } from './yahooFinanceApi';
 import { fetchYahooChart } from './yahooFinanceApi';
 import { fetchFxBars, FRANKFURTER_FX, isFrankfurterSymbol } from './frankfurterApi';
 import { fetchFredBars, FRED_MARKET_SERIES, isFredSymbol } from './fredApi';
-import { fetchBinanceDailyBars, isBinanceRestSymbol } from './binanceRestApi';
+import { fetchBinanceBars, isBinanceRestSymbol } from './binanceRestApi';
 
-type Interval = '1d' | '1wk' | '1mo' | '1h';
+type Interval = '15m' | '1h' | '1d' | '1wk' | '1mo';
 type Range = '5d' | '1mo' | '3mo' | '6mo' | '1y' | '2y';
 
 const RANGE_DAYS: Record<Range, number> = {
@@ -72,7 +72,7 @@ function aggregateBars(bars: YahooChartBar[], mode: 'week' | 'month'): YahooChar
     }));
 }
 
-async function fetchDailyBars(symbol: string, range: Range): Promise<YahooChartBar[]> {
+async function fetchBaseBars(symbol: string, interval: Interval, range: Range): Promise<YahooChartBar[]> {
   const days = RANGE_DAYS[range];
 
   if (isFrankfurterSymbol(symbol)) {
@@ -81,8 +81,11 @@ async function fetchDailyBars(symbol: string, range: Range): Promise<YahooChartB
   }
 
   if (isBinanceRestSymbol(symbol)) {
-    const all = await fetchBinanceDailyBars('XAUUSDT', 500);
-    return all.slice(-Math.min(days + 10, all.length));
+    const binanceInterval = interval === '15m' ? '15m' : (interval === '1h' ? '1h' : '1d');
+    const limit = interval === '15m' ? 1000 : (interval === '1h' ? 500 : Math.min(days + 10, 500));
+    const all = await fetchBinanceBars('XAUUSDT', binanceInterval, limit);
+    if (interval === '1d') return all.slice(-Math.min(days + 10, all.length));
+    return all;
   }
 
   if (isFredSymbol(symbol)) {
@@ -93,7 +96,9 @@ async function fetchDailyBars(symbol: string, range: Range): Promise<YahooChartB
     }
   }
 
-  const { bars } = await fetchYahooChart(symbol, '1d', range);
+  // Yahoo Finance doesn't support 15m easily without premium, fallback to 1h
+  const yahooInterval = (interval === '15m' || interval === '1h') ? '1h' : '1d';
+  const { bars } = await fetchYahooChart(symbol, yahooInterval, range);
   return bars;
 }
 
@@ -103,17 +108,11 @@ export async function getMarketBars(
   interval: Interval = '1d',
   range: Range = '1y'
 ): Promise<YahooChartBar[]> {
-  if (interval === '1h') {
-    // No free intraday API — use recent daily bars as proxy
-    const daily = await fetchDailyBars(symbol, '1mo');
-    return daily.slice(-20);
-  }
+  const base = await fetchBaseBars(symbol, interval, range);
 
-  const daily = await fetchDailyBars(symbol, range);
-
-  if (interval === '1wk') return aggregateBars(daily, 'week');
-  if (interval === '1mo') return aggregateBars(daily, 'month');
-  return daily;
+  if (interval === '1wk') return aggregateBars(base, 'week');
+  if (interval === '1mo') return aggregateBars(base, 'month');
+  return base;
 }
 
 /** Fetch quote — derived from latest bars (no extra API call) */

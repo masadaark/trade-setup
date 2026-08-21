@@ -8,6 +8,7 @@ import { useCotData } from '../hooks/useCotData';
 import { type CotAsset } from '../services/cftcApi';
 import { interpretCotSignal, computeCommercialNet } from '../services/marketAnalysis';
 import { cn } from '../lib/utils';
+import { Tooltip } from '../components/ui/tooltip';
 
 const ASSET_OPTIONS: { value: CotAsset; label: string; description: string }[] = [
   { value: 'gold', label: 'Gold (XAU)', description: 'Non-commercial positioning in Gold futures' },
@@ -102,9 +103,11 @@ function CotPanel() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {/* Non-commercial net */}
                 <div className="rounded-md bg-muted/50 p-4 space-y-1">
-                  <span className="text-xs text-muted-foreground font-medium block">
-                    Non-Commercial (Speculators)
-                  </span>
+                  <Tooltip content="Trend-following speculators. Often wrong at extreme highs or lows.">
+                    <span className="text-xs text-muted-foreground font-medium block">
+                      Non-Commercial (Specs)
+                    </span>
+                  </Tooltip>
                   <span
                     className={cn(
                       'text-2xl font-bold font-tabular block',
@@ -120,9 +123,11 @@ function CotPanel() {
 
                 {/* Commercial (Hedgers) */}
                 <div className="rounded-md bg-muted/50 p-4 space-y-1">
-                  <span className="text-xs text-muted-foreground font-medium block">
-                    Commercial (Hedgers)
-                  </span>
+                  <Tooltip content="Smart Money producers/hedgers. A surge (+40) indicates strong institutional buying/selling.">
+                    <span className="text-xs text-muted-foreground font-medium block">
+                      Commercial (Hedgers)
+                    </span>
+                  </Tooltip>
                   <span
                     className={cn(
                       'text-2xl font-bold font-tabular block',
@@ -144,9 +149,11 @@ function CotPanel() {
 
                 {/* COT Index */}
                 <div className="rounded-md bg-muted/50 p-4 space-y-1">
-                  <span className="text-xs text-muted-foreground font-medium block">
-                    COT Index (52-week percentile)
-                  </span>
+                  <Tooltip content="0% = Max Bearish, 100% = Max Bullish. >90% or <10% signals a crowded trade reversal.">
+                    <span className="text-xs text-muted-foreground font-medium block">
+                      COT Index (Percentile)
+                    </span>
+                  </Tooltip>
                   <span
                     className={cn(
                       'text-2xl font-bold font-tabular block',

@@ -6,6 +6,7 @@ import { useFredSeries } from '../hooks/useFredData';
 import { useQuote, useCurrencyStrength } from '../hooks/useMarketData';
 import { computeMacroRegime } from '../services/marketAnalysis';
 import { cn } from '../lib/utils';
+import { Tooltip } from '../components/ui/tooltip';
 
 // Currency strength computed from live FX daily changes
 function MacroPanel() {
@@ -132,9 +133,11 @@ function MacroPanel() {
           {/* Fed Funds Rate */}
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription className="text-xs uppercase font-semibold tracking-wider">
-                Fed Funds Rate
-              </CardDescription>
+              <Tooltip content="Higher rates = Strong USD, Bearish Gold. Rate Cuts = Bullish Gold.">
+                <CardDescription className="text-xs uppercase font-semibold tracking-wider w-fit">
+                  Fed Funds Rate
+                </CardDescription>
+              </Tooltip>
               <div className="flex items-baseline justify-between mt-1 gap-2">
                 <span className="text-2xl font-bold font-tabular">
                   <StatValue
@@ -156,9 +159,11 @@ function MacroPanel() {
           {/* Yield Spread */}
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription className="text-xs uppercase font-semibold tracking-wider">
-                10Y–2Y Yield Spread
-              </CardDescription>
+              <Tooltip content="Inverted (< 0%) signals recession. Normalization signals risk-off market panic.">
+                <CardDescription className="text-xs uppercase font-semibold tracking-wider w-fit">
+                  10Y–2Y Yield Spread
+                </CardDescription>
+              </Tooltip>
               <div className="flex items-baseline justify-between mt-1 gap-2">
                 <span
                   className={cn(
@@ -189,9 +194,11 @@ function MacroPanel() {
           {/* CPI YoY */}
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription className="text-xs uppercase font-semibold tracking-wider">
-                US CPI Inflation YoY
-              </CardDescription>
+              <Tooltip content="High CPI = Fed hikes rates (Bearish Gold). Falling CPI = rate cuts (Bullish Gold).">
+                <CardDescription className="text-xs uppercase font-semibold tracking-wider w-fit">
+                  US CPI Inflation YoY
+                </CardDescription>
+              </Tooltip>
               <div className="flex items-baseline justify-between mt-1 gap-2">
                 <span className={cn('text-2xl font-bold font-tabular', parseFloat(cpiYoY ?? '99') < 3 ? 'text-success' : 'text-warning')}>
                   <StatValue
@@ -213,9 +220,11 @@ function MacroPanel() {
           {/* Fed Balance Sheet */}
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription className="text-xs uppercase font-semibold tracking-wider">
-                Fed Balance Sheet
-              </CardDescription>
+              <Tooltip content="QT (shrinking) drains liquidity. QE (growing) injects money, highly Bullish for Gold.">
+                <CardDescription className="text-xs uppercase font-semibold tracking-wider w-fit">
+                  Fed Balance Sheet
+                </CardDescription>
+              </Tooltip>
               <div className="flex items-baseline justify-between mt-1 gap-2">
                 <span className="text-2xl font-bold font-tabular">
                   <StatValue
@@ -242,7 +251,9 @@ function MacroPanel() {
           <CardHeader>
             <div className="flex items-center justify-between flex-wrap gap-2">
               <CardTitle className="text-sm">Gold (XAU) vs US Dollar Index (DXY)</CardTitle>
-              <Badge variant="success">Inverse Correlation</Badge>
+              <Tooltip content="DXY Weakness is a strong Bullish catalyst for Gold.">
+                <Badge variant="success">Inverse Correlation</Badge>
+              </Tooltip>
             </div>
             <CardDescription>
               Validates Gold momentum — if DXY falls while Gold rises, institutional buying is genuine

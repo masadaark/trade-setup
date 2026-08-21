@@ -179,3 +179,56 @@ export function detectTrend(bars: YahooChartBar[], lookback = 10): TrendDirectio
   if (change < -0.005) return 'Bearish';
   return 'Neutral';
 }
+
+/** Calculate Hurst Exponent proxy to detect trending vs mean-reverting behavior */
+export function calcHurstExponent(bars: YahooChartBar[]): number {
+  if (bars.length < 32) return 0.5; // Default random walk
+  const prices = bars.map(b => b.close);
+  const diffs = [];
+  for (let i = 1; i < prices.length; i++) {
+    diffs.push(Math.log(prices[i] / prices[i - 1]));
+  }
+  
+  let v1 = 0; let v2 = 0;
+  for (let i = 0; i < diffs.length; i++) {
+    v1 += diffs[i] * diffs[i];
+    if (i > 0) v2 += Math.pow(diffs[i] + diffs[i-1], 2);
+  }
+  v1 /= diffs.length;
+  v2 /= (diffs.length - 1);
+  
+  if (v1 === 0 || v2 === 0) return 0.5;
+  const h = 0.5 * (Math.log(v2) - Math.log(v1)) / Math.log(2) + 0.5;
+  return Math.max(0, Math.min(1, h));
+}
+
+export type VSAState = 'Accumulation (Bullish)' | 'Distribution (Bearish)' | 'Climax Volume' | 'Normal';
+
+/** Detect Volume Spread Analysis anomalies */
+export function detectVSA(bars: YahooChartBar[]): VSAState {
+  if (bars.length < 10) return 'Normal';
+  const recent = bars.slice(-10);
+  const last = recent[recent.length - 1];
+  
+  const avgVol = recent.slice(0, -1).reduce((s, b) => s + (b.volume || 0), 0) / 9;
+  const avgRange = recent.slice(0, -1).reduce((s, b) => s + (b.high - b.low), 0) / 9;
+  
+  if (avgVol === 0 || avgRange === 0) return 'Normal';
+
+  const isHighVol = last.volume > avgVol * 1.5;
+  const isSmallRange = (last.high - last.low) < avgRange * 0.7;
+  
+  if (isHighVol && isSmallRange) {
+    // High effort (vol) but small result (range) -> Accumulation or Distribution
+    const range = last.high - last.low;
+    const closePos = range > 0 ? (last.close - last.low) / range : 0.5;
+    if (closePos > 0.5) return 'Accumulation (Bullish)';
+    return 'Distribution (Bearish)';
+  }
+  
+  if (isHighVol && (last.high - last.low) > avgRange * 1.5) {
+    return 'Climax Volume';
+  }
+  
+  return 'Normal';
+}

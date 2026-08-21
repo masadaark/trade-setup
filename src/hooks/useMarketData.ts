@@ -8,6 +8,9 @@ import {
   calcVWAP,
   detectTrend,
   findSwingLevels,
+  calcHurstExponent,
+  detectVSA,
+  type VSAState,
   type YahooQuote,
   type YahooChartBar,
 } from '../services/yahooFinanceApi';
@@ -20,6 +23,7 @@ import {
   type CurrencyStrength,
 } from '../services/marketAnalysis';
 import { scanTradeSetups, scanStructureLiquidity } from '../services/setupScanner';
+import { computeSessionProfile, type SessionProfile } from '../services/sessionProfile';
 
 export type { TradeSetup, TrendDirection, StructureTimeframe, CurrencyStrength };
 export { formatPrice };
@@ -40,6 +44,8 @@ interface UseBarsResult {
   bars: YahooChartBar[];
   atr: number;
   vwap: number;
+  hurst: number;
+  vsa: VSAState | null;
   isLoading: boolean;
   error: string | null;
   refetch: () => void;
@@ -47,7 +53,7 @@ interface UseBarsResult {
 
 export function useBars(
   symbol: string,
-  interval: '1d' | '1wk' | '1mo' | '1h' = '1d',
+  interval: '15m' | '1h' | '1d' | '1wk' | '1mo' = '1d',
   range: '5d' | '1mo' | '3mo' | '6mo' | '1y' | '2y' = '1y'
 ): UseBarsResult {
   const [bars, setBars] = useState<YahooChartBar[]>([]);
@@ -72,6 +78,8 @@ export function useBars(
     bars,
     atr: bars.length > 0 ? calcATR(bars) : 0,
     vwap: bars.length > 0 ? calcVWAP(bars) : 0,
+    hurst: bars.length > 0 ? calcHurstExponent(bars) : 0.5,
+    vsa: bars.length > 0 ? detectVSA(bars) : null,
     isLoading,
     error,
     refetch: load,
@@ -113,6 +121,7 @@ const MTF_CONFIG = [
   { tf: 'Daily', label: 'D1', interval: '1d' as const, range: '6mo' as const, lookback: 20 },
   { tf: '4-Hour', label: 'H4', interval: '1h' as const, range: '1mo' as const, lookback: 30 },
   { tf: '1-Hour', label: 'H1', interval: '1h' as const, range: '5d' as const, lookback: 20 },
+  { tf: '15-Min', label: 'M15', interval: '15m' as const, range: '5d' as const, lookback: 20 },
 ];
 
 function structureDescription(symbol: string, trend: TrendDirection, bars: YahooChartBar[]): string {
@@ -139,6 +148,7 @@ interface UseStructureAnalysisResult {
     demandLow: number;
     demandHigh: number;
   } | null;
+  sessionProfile: SessionProfile | null;
   isLoading: boolean;
   error: string | null;
   refetch: () => void;
@@ -147,6 +157,7 @@ interface UseStructureAnalysisResult {
 export function useStructureAnalysis(symbol = 'GC=F'): UseStructureAnalysisResult {
   const [timeframes, setTimeframes] = useState<StructureTimeframe[]>([]);
   const [liquidity, setLiquidity] = useState<UseStructureAnalysisResult['liquidity']>(null);
+  const [sessionProfile, setSessionProfile] = useState<SessionProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -155,8 +166,11 @@ export function useStructureAnalysis(symbol = 'GC=F'): UseStructureAnalysisResul
     setError(null);
     try {
       const results: StructureTimeframe[] = [];
+      let profile: SessionProfile | null = null;
       for (const cfg of MTF_CONFIG) {
         const bars = await fetchBars(symbol, cfg.interval, cfg.range);
+        if (cfg.interval === '15m') profile = computeSessionProfile(bars);
+        
         const trend = detectTrend(bars, cfg.lookback);
         results.push({
           tf: cfg.tf,
@@ -167,6 +181,7 @@ export function useStructureAnalysis(symbol = 'GC=F'): UseStructureAnalysisResul
         });
       }
       setTimeframes(results);
+      setSessionProfile(profile);
       setLiquidity(await scanStructureLiquidity(symbol));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -185,7 +200,7 @@ export function useStructureAnalysis(symbol = 'GC=F'): UseStructureAnalysisResul
       ? 'Bearish Structure'
       : 'Mixed Structure — Wait for clarity';
 
-  return { timeframes, alignedCount, verdict, liquidity, isLoading, error, refetch: load };
+  return { timeframes, alignedCount, verdict, liquidity, sessionProfile, isLoading, error, refetch: load };
 }
 
 const CURRENCY_PAIRS: { symbol: string; currency: string; invert?: boolean }[] = [

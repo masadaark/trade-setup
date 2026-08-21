@@ -5,6 +5,7 @@ import { Badge } from '../components/ui/badge';
 import { DataState } from '../components/ui/data-state';
 import { useTradeSetups } from '../hooks/useMarketData';
 import { cn } from '../lib/utils';
+import { Tooltip } from '../components/ui/tooltip';
 
 function RiskPanel() {
   const { bestSetup, isLoading, error, refetch } = useTradeSetups();
@@ -26,10 +27,19 @@ function RiskPanel() {
   const riskAmount = (accountBalance * riskPercent) / 100;
   const stopLossDistance = Math.abs(entryPrice - stopLossPrice);
   const takeProfitDistance = Math.abs(takeProfitPrice - entryPrice);
-  const positionUnits = stopLossDistance > 0 ? riskAmount / stopLossDistance : 0;
-  const lotSize = (positionUnits / 100).toFixed(2);
+
+  // XAUUSD Contract Specs
+  const contractSize = 100; // 100 oz per standard lot
+  const tickSize = 0.01; // 1 point = $0.01 price move
+  const tickValue = contractSize * tickSize; // $1 per tick/point per lot
+
+  const stopLossPoints = Math.round(stopLossDistance / tickSize);
+  const takeProfitPoints = Math.round(takeProfitDistance / tickSize);
+
+  const lotSizeRaw = stopLossPoints > 0 ? riskAmount / (stopLossPoints * tickValue) : 0;
+  const lotSize = lotSizeRaw.toFixed(2);
   const rr = stopLossDistance > 0 ? (takeProfitDistance / stopLossDistance).toFixed(2) : '—';
-  const potentialProfit = positionUnits * takeProfitDistance;
+  const potentialProfit = lotSizeRaw * takeProfitPoints * tickValue;
 
   const rrNumeric = parseFloat(rr);
   const checks = [
@@ -44,9 +54,9 @@ function RiskPanel() {
       value: `${riskPercent.toFixed(1)}%`,
     },
     {
-      label: 'Stop Loss distance > 0',
-      pass: stopLossDistance > 0,
-      value: `${stopLossDistance.toFixed(2)} pts`,
+      label: 'Stop Loss distance (Points)',
+      pass: stopLossPoints >= 100 && stopLossPoints <= 1000,
+      value: `${stopLossPoints} pts`,
     },
   ];
 
@@ -207,7 +217,9 @@ function RiskPanel() {
 
             <div className="rounded-md bg-muted/50 border border-border p-4 grid grid-cols-2 gap-4">
               <div>
-                <span className="text-xs text-muted-foreground block">Recommended Lot Size</span>
+                <Tooltip content="The exact position size to trade. It scales based on your Stop Loss distance to keep max loss constant.">
+                  <span className="text-xs text-muted-foreground block w-fit">Recommended Lot Size</span>
+                </Tooltip>
                 <span className="text-3xl font-bold font-tabular text-foreground">
                   {lotSize}
                   <span className="text-sm font-normal text-muted-foreground ml-1">Lots</span>
@@ -227,7 +239,9 @@ function RiskPanel() {
                   </p>
                 </div>
                 <div>
-                  <span className="text-xs text-muted-foreground">R:R ratio</span>
+                  <Tooltip content="Risk-to-Reward ratio. A 1:3 ratio means you risk $1 to potentially make $3. Minimum recommended is 1:2.5.">
+                    <span className="text-xs text-muted-foreground w-fit block">R:R ratio</span>
+                  </Tooltip>
                   <p className="text-sm font-bold font-tabular">1:{rr}</p>
                 </div>
               </div>

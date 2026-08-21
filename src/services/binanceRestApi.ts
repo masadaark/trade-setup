@@ -12,14 +12,15 @@ interface BinanceKline {
 }
 
 /** Free Binance USD-M Futures klines — XAUUSDT is futures-only (not on spot API) */
-export async function fetchBinanceDailyBars(
+export async function fetchBinanceBars(
   symbol = 'XAUUSDT',
+  interval = '1d',
   limit = 200
 ): Promise<YahooChartBar[]> {
-  const cacheKey = `binance-futures:klines:${symbol}:${limit}`;
+  const cacheKey = `binance-futures:klines:${symbol}:${interval}:${limit}`;
 
   return cachedFetch(cacheKey, async () => {
-    const params = new URLSearchParams({ symbol, interval: '1d', limit: String(limit) });
+    const params = new URLSearchParams({ symbol, interval, limit: String(limit) });
     const res = await enqueue('binance', () =>
       fetch(`/api/binance-futures/fapi/v1/klines?${params}`)
     );
@@ -34,7 +35,7 @@ export async function fetchBinanceDailyBars(
       close: parseFloat(k[4]),
       volume: parseFloat(k[5]),
     }));
-  }, 30 * 60 * 1000);
+  }, interval === '1d' ? 30 * 60 * 1000 : 60 * 1000); // 1-min cache for intraday
 }
 
 /** Map dashboard symbol to Binance pair */

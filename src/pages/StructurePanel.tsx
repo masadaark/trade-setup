@@ -4,9 +4,10 @@ import { Badge } from '../components/ui/badge';
 import { DataState } from '../components/ui/data-state';
 import { useStructureAnalysis, formatPrice } from '../hooks/useMarketData';
 import { cn } from '../lib/utils';
+import { Tooltip } from '../components/ui/tooltip';
 
 function StructurePanel() {
-  const { timeframes, alignedCount, verdict, liquidity, isLoading, error, refetch } =
+  const { timeframes, alignedCount, verdict, liquidity, sessionProfile, isLoading, error, refetch } =
     useStructureAnalysis('GC=F');
 
   const isBullishVerdict = alignedCount >= 3;
@@ -97,35 +98,47 @@ function StructurePanel() {
                 <CardHeader>
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Flame size={15} className="text-danger" />
-                    Liquidity Targets
+                    Intraday Targets
                   </CardTitle>
-                  <CardDescription>Derived from weekly high and daily swing levels</CardDescription>
+                  <CardDescription>Liquidity zones & Session ranges</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="rounded-md bg-danger/10 border border-danger/20 p-3">
-                    <span className="text-xs font-semibold text-danger block">Buy-Side Liquidity (BSL)</span>
-                    <span className="text-lg font-bold font-tabular">{formatPrice('GC=F', liquidity.bsl)}</span>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Prior week High — target for long trades
-                    </p>
+                    <Tooltip content="Buy-Side Liquidity. Previous highs where retail stop-losses rest. Market makers often hunt these.">
+                      <span className="text-xs font-semibold text-danger block w-fit">Buy-Side Liquidity (BSL)</span>
+                    </Tooltip>
+                    <span className="text-lg font-bold font-tabular mt-1 block">{formatPrice('GC=F', liquidity.bsl)}</span>
                   </div>
 
-                  <div className="rounded-md bg-muted/50 border border-border p-3">
-                    <span className="text-xs font-semibold text-muted-foreground block">Current Price Zone</span>
-                    <span className="text-lg font-bold font-tabular">
-                      {formatPrice('GC=F', liquidity.currentLow)} – {formatPrice('GC=F', liquidity.currentHigh)}
-                    </span>
-                    <p className="text-xs text-muted-foreground mt-0.5">±0.3×ATR around last close</p>
-                  </div>
+                  {sessionProfile?.asianRange && (
+                    <div className="rounded-md bg-muted/50 border border-border p-3">
+                      <Tooltip content="Asian session high/low. Often swept (broken) by London/NY to trap early traders.">
+                        <span className="text-xs font-semibold text-muted-foreground block w-fit">Asian Session Range</span>
+                      </Tooltip>
+                      <span className="text-base font-bold font-tabular mt-1 block">
+                        {formatPrice('GC=F', sessionProfile.asianRange.high)} — {formatPrice('GC=F', sessionProfile.asianRange.low)}
+                      </span>
+                    </div>
+                  )}
+
+                  {sessionProfile?.londonIB && (
+                    <div className="rounded-md bg-muted/50 border border-border p-3">
+                      <Tooltip content="London Initial Balance. The high/low of the first 2 hours. A breakout often sets the day's trend.">
+                        <span className="text-xs font-semibold text-muted-foreground block w-fit">London Initial Balance</span>
+                      </Tooltip>
+                      <span className="text-base font-bold font-tabular mt-1 block">
+                        {formatPrice('GC=F', sessionProfile.londonIB.high)} — {formatPrice('GC=F', sessionProfile.londonIB.low)}
+                      </span>
+                    </div>
+                  )}
 
                   <div className="rounded-md bg-success/10 border border-success/20 p-3">
-                    <span className="text-xs font-semibold text-success block">Demand Order Block (OB)</span>
-                    <span className="text-lg font-bold font-tabular">
+                    <Tooltip content="Order Block. A high-probability area where institutional buying previously occurred.">
+                      <span className="text-xs font-semibold text-success block w-fit">Demand Order Block (OB)</span>
+                    </Tooltip>
+                    <span className="text-lg font-bold font-tabular mt-1 block">
                       {formatPrice('GC=F', liquidity.demandLow)} – {formatPrice('GC=F', liquidity.demandHigh)}
                     </span>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Nearest support zone — entry area
-                    </p>
                   </div>
                 </CardContent>
               </Card>
