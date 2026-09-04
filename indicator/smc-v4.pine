@@ -2,7 +2,7 @@
 // Mazada SMC v4 — Mastery Framework (aligned with brain/trade-setup.md)
 // v4 focus: HTF alignment, CID vs CHoCH, liquidity sweeps, Strong H/L after sweep,
 // Fail Swing, AMD phases, 1-2-3 Entry confirm, XAU-adaptive SL, 80/20 sideway filter
-indicator(title = "Mazada SMC v4 — Mastery Framework", shorttitle = "Mazada v4", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
+indicator(title = "Mazada SMC v4 — Mastery Framework", shorttitle = "Mazada v4", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500, max_bars_back = 1000)
 
 // =========================================================================
 // 1. EMA & SIGMA BANDS CALCULATIONS & PLOTS
@@ -473,11 +473,12 @@ f_draw_sweep(is_high, y, level, short_txt, tip, css, bar_x) =>
         label.new(bar_x, y_off, tip, color = TRANSP_CSS, textcolor = css, style = is_high ? label.style_label_down : label.style_label_up, size = size.tiny, tooltip = tip)
 
 display_Structure(x, y, txt, css, dashed, down, lbl_size) =>
-    structure_line = line.new(x, y, n, y
+    int safe_x = math.max(x, math.max(0, n - 950))
+    structure_line = line.new(safe_x, y, n, y
       , color = css
       , style = dashed ? line.style_dashed : line.style_solid)
 
-    structure_lbl = label.new(int(math.avg(x, n)), y, txt
+    structure_lbl = label.new(int(math.avg(safe_x, n)), y, txt
       , color = TRANSP_CSS
       , textcolor = css
       , style = down ? label.style_label_down : label.style_label_up
@@ -680,7 +681,8 @@ if bsl_sweep_now and bsl_sweep_raw and not bsl_sweep_raw[1]
     f_draw_sweep(true, bsl_y, prev_trail_up, 'BSL', 'BSL Sweep — liquidity above ' + str.tostring(prev_trail_up, format.mintick), #ff5252, bsl_x)
 
 if barstate.islast and show_hl_swings and not na(extend_top)
-    line.set_xy1(extend_top, trail_up_x, trail_up)
+    int safe_trail_up_x = math.max(trail_up_x, math.max(0, n - 950))
+    line.set_xy1(extend_top, safe_trail_up_x, trail_up)
     line.set_xy2(extend_top, n + 20, trail_up)
     line.set_color(extend_top, bear_css)
     line.set_width(extend_top, 1)
@@ -744,7 +746,8 @@ amd_bg = mastery_enabled and show_amd and amd_phase == 1 ? color.new(#2196f3, 96
 bgcolor(amd_bg, title='AMD Phase')
 
 if barstate.islast and show_hl_swings and not na(extend_btm)
-    line.set_xy1(extend_btm, trail_dn_x, trail_dn)
+    int safe_trail_dn_x = math.max(trail_dn_x, math.max(0, n - 950))
+    line.set_xy1(extend_btm, safe_trail_dn_x, trail_dn)
     line.set_xy2(extend_btm, n + 20, trail_dn)
     line.set_color(extend_btm, bull_css)
     line.set_width(extend_btm, 1)
@@ -947,8 +950,9 @@ if show_eq
         min = math.min(eq_top, eq_prev_top)
         if max < min + atr * eq_threshold
             eq_lbl_txt = eq_as_liq and mastery_enabled ? 'EQH' : 'EQH'
-            eqh_line = line.new(eq_top_x, eq_prev_top, n-eq_len, eq_top, color = bear_css, style = line.style_dotted)
-            eqh_lbl = label.new(int(math.avg(n-eq_len, eq_top_x)), eq_top, eq_lbl_txt, color = #00000000, textcolor = bear_css, style = label.style_label_down, size = eqhl_lbl_size)
+            int safe_eq_top_x = math.max(eq_top_x, math.max(0, n - 950))
+            eqh_line = line.new(safe_eq_top_x, eq_prev_top, n-eq_len, eq_top, color = bear_css, style = line.style_dotted)
+            eqh_lbl = label.new(int(math.avg(n-eq_len, safe_eq_top_x)), eq_top, eq_lbl_txt, color = #00000000, textcolor = bear_css, style = label.style_label_down, size = eqhl_lbl_size)
             if mode == 'Present'
                 line.delete(eqh_line[1])
                 label.delete(eqh_lbl[1])
@@ -962,8 +966,9 @@ if show_eq
         min = math.min(eq_btm, eq_prev_btm)
         if min > max - atr * eq_threshold
             eq_lbl_txt = eq_as_liq and mastery_enabled ? 'EQL' : 'EQL'
-            eql_line = line.new(eq_btm_x, eq_prev_btm, n-eq_len, eq_btm, color = bull_css, style = line.style_dotted)
-            eql_lbl = label.new(int(math.avg(n-eq_len, eq_btm_x)), eq_btm, eq_lbl_txt, color = #00000000, textcolor = bull_css, style = label.style_label_up, size = eqhl_lbl_size)
+            int safe_eq_btm_x = math.max(eq_btm_x, math.max(0, n - 950))
+            eql_line = line.new(safe_eq_btm_x, eq_prev_btm, n-eq_len, eq_btm, color = bull_css, style = line.style_dotted)
+            eql_lbl = label.new(int(math.avg(n-eq_len, safe_eq_btm_x)), eq_btm, eq_lbl_txt, color = #00000000, textcolor = bull_css, style = label.style_label_up, size = eqhl_lbl_size)
             eql_alert := true
             last_eql := eq_btm
             if mode == 'Present'
