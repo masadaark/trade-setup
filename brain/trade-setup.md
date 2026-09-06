@@ -4,16 +4,18 @@ title: "Mastery Trading Strategy Guide: Chart Architecture & Profit Execution (H
 role: primary-core
 priority: 1
 layer: 0-core-execution
+partner: vsa-weis-wyckoff.md
 scope: market structure, liquidity sweeps, retail traps, AMD pattern, 1-2-3 entry confirmation, trade management, risk discipline 15/35/50, port splitting
 keywords: XAUUSD, BOS Major/Minor, CHoCH/CID, Inducement, Sweep, POI, FVG, AMD, Clean Traffic, Fail Swing, 3D, 1-2-3 Entry, Partial Close, Port B C D
 supporting_modules:
+  tier_1_partner:
+    - vsa-weis-wyckoff.md (Volume Spread Analysis, Springs/Upthrusts, Effort vs Reward, Tape reading)
   secondary_confluence:
     - cot-intelligence.md (Institutional Smart Money / Commercial positioning)
     - algorithmic-strategy.md (Statistical edge, Mean Reversion, Half-Life)
   tertiary_structure:
     - auction-market-theory.md (Day type, IB range, 80% rule)
     - market-profile.md (Value Area VAH/VAL/POC, Single prints)
-    - vsa-weis-wyckoff.md (Effort vs Reward, Springs, Upthrusts, Ice line)
   contextual_macro:
     - global-macro.md (Policy rates, inflation, macro regimes)
     - intermarket.md (Gold-USD inverse, 10Y Yields, Oil)
