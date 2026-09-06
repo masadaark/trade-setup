@@ -1,3 +1,18 @@
+---
+id: market-profile
+title: "Market Profile Trade Setup: Steidlmayer Method"
+scope: market profile, value area, TPO, bell curve, trade facilitation, initial balance
+layer: 3-structure
+keywords: Steidlmayer, TPO, value area, bell curve, price recurrence, initiating, responsive, excess, single print, auction point
+sections:
+  - "1. Executive Foundation: Logic of Market Organization"
+  - "2. Bell Curve and Value Identification"
+  - "3. Initiating vs. Responsive Activity"
+  - "4. Excesses and Tail Signals"
+  - "5. Objectivity and Execution Discipline"
+  - "6. Day Trader's Game Plan"
+---
+
 ### Market Profile Trade Setup Report: Strategic Implementation of the Steidlmayer Method
 
 ##### 1\. Executive Foundation: The Logic of Market Organization

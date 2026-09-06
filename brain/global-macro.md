@@ -1,3 +1,20 @@
+---
+id: global-macro
+title: Global Macro Framework for Day Trading
+scope: macro regime, GDP, inflation, central banks, FX, equities, commodities, fixed income
+layer: 1-macro
+keywords: regime, policy rate, impossible trinity, ISM, Baltic Dry, Sharpe, Sortino, VaR, discretionary, systematic, cognitive bias
+sections:
+  - "1. Executive Introduction to Global Macro Day Trading"
+  - "2. Strategy Selection: Discretionary vs. Systematic"
+  - "3. The Four Product Groups (Equities, FX, Fixed Income, Commodities)"
+  - "4. Technical Analysis & Execution Indicators"
+  - "5. Risk Management & Position Sizing"
+  - "6. Psychology: Cognitive Bias"
+  - "7. Central Banks & Economic Data"
+  - "8. Actionable Trade Setup Checklist"
+---
+
 ### Knowledge Base Trade Setup Report: Global Macro Framework for Day Trading
 
 #### 1\. Executive Introduction to Global Macro Day Trading

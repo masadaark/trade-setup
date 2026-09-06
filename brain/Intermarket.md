@@ -1,3 +1,18 @@
+---
+id: intermarket
+title: Intermarket Trade Setup Report for Day Traders
+scope: gold-USD correlation, currency strength, oil dynamics, interest rates, carry trade, equity/gold ratio
+layer: 1-macro
+keywords: Gold-Dollar inverse, AUD, CAD, JPY, oil shock, Volcker, carry trade, yield differential, Bretton Woods, OPEC
+sections:
+  - "1. The Gold-Dollar Fundamental Inverse Anchor"
+  - "2. Currency Strength Ranking: The Gold Benchmark Method"
+  - "3. Oil Dynamics and the USD-Petroleum Relationship"
+  - "4. Interest Rates, Yield Curves, and the Fed's Playbook"
+  - "5. Hard Assets vs. Monetary Assets: The Equity/Gold Ratio"
+  - "6. Tactical Execution Checklist"
+---
+
 ### Intermarket Trade Setup Report for Day Traders
 
 #### 1\. The Gold-Dollar Fundamental Inverse Anchor

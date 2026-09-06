@@ -1,3 +1,17 @@
+---
+id: cot-intelligence
+title: Leveraging COT Insider Intelligence
+scope: COT report, CFTC, commercial hedgers, large speculators, net position, COT index, sentiment
+layer: 2-positioning
+keywords: COT, CFTC, commercial, speculator, net position, COT index, 40-point surge, mirror image, open interest, smart money
+sections:
+  - "1. Strategic Foundation of the COT"
+  - "2. Decoding Market Participants: Motives and Behaviors"
+  - "3. Core Metrics (Net Position, COT Index, Movement Index)"
+  - "4. Sector-Specific Intelligence and Cross-Market Correlations"
+  - "5. Strategic Integration: Weekly Report to Daily Bias"
+---
+
 ### Knowledge Base Trade Setup Report: Leveraging COT Insider Intelligence
 
 ##### 1\. The Strategic Foundation of the Commitments of Traders (COT)

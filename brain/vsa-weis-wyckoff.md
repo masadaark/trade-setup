@@ -1,3 +1,17 @@
+---
+id: vsa-weis-wyckoff
+title: "Volume Spread Analysis (VSA) & Weis-Wyckoff Method"
+scope: VSA, Wyckoff, support/resistance, ice line, springs, upthrusts, effort vs reward, bar chart reading
+layer: 4-price-action
+keywords: Wyckoff, VSA, ice line, axis line, spring, upthrust, shortening of thrust, absorption, hinge, effort vs reward, trend channel, reverse channel
+sections:
+  - "1. Strategic Foundation: Geometry of the Market"
+  - "2. Dynamic Boundaries: Trend Channels and Reverse Lines"
+  - "3. Action Signals: Springs and Upthrusts"
+  - "4. Micro-Narrative: Logical Bar Chart Interpretation"
+  - "5. Execution Strategy: The Trade About to Happen"
+---
+
 ### The Day Trader’s Knowledge Base: Mastering the Trade Setup via the Weis-Wyckoff Method
 
 #### 1\. Strategic Foundation: The Geometry of the Market
