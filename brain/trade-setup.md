@@ -1,102 +1,132 @@
-คู่มือกลยุทธ์การเทรดระดับ Mastery: สถาปัตยกรรมกราฟและจังหวะสังหารกำไรสไตล์ High Elite FX
+---
+id: trade-setup
+title: "Mastery Trading Strategy Guide: Chart Architecture & Profit Execution (High Elite FX)"
+role: primary-core
+priority: 1
+layer: 0-core-execution
+scope: market structure, liquidity sweeps, retail traps, AMD pattern, 1-2-3 entry confirmation, trade management, risk discipline 15/35/50, port splitting
+keywords: XAUUSD, BOS Major/Minor, CHoCH/CID, Inducement, Sweep, POI, FVG, AMD, Clean Traffic, Fail Swing, 3D, 1-2-3 Entry, Partial Close, Port B C D
+supporting_modules:
+  secondary_confluence:
+    - cot-intelligence.md (Institutional Smart Money / Commercial positioning)
+    - algorithmic-strategy.md (Statistical edge, Mean Reversion, Half-Life)
+  tertiary_structure:
+    - auction-market-theory.md (Day type, IB range, 80% rule)
+    - market-profile.md (Value Area VAH/VAL/POC, Single prints)
+    - vsa-weis-wyckoff.md (Effort vs Reward, Springs, Upthrusts, Ice line)
+  contextual_macro:
+    - global-macro.md (Policy rates, inflation, macro regimes)
+    - intermarket.md (Gold-USD inverse, 10Y Yields, Oil)
+sections:
+  - "1. Philosophy & Nature of the Gold Market (The Nature of XAUUSD)"
+  - "2. Market Structure Architecture (Market Structure Mastery)"
+  - "3. Liquidity Psychology & Retail Traps (The Retail Trap & Liquidity Sweeps)"
+  - "4. Advanced Tactical Maneuvers (AMD, CT=CT, Fail Swing, 3D Pattern)"
+  - "5. Execution System & Order Management (The 1-2-3 Entry, 70-80% TP, Port B/C/D)"
+  - "6. Professional Discipline & Portfolio Architecture (15/35/50 Rule)"
+---
 
-การเทรดทองคำ (XAUUSD) ในยุคปัจจุบันไม่ใช่แค่เรื่องของเส้นกราฟ แต่คือการอ่าน "เจตนา" ของตลาดผ่านพฤติกรรมราคา (Price Action) และสภาพคล่อง (Liquidity) การเข้าเทรดโดยปราศจากการเข้าใจบริบท (Context) คือการเดินเข้าสนามรบด้วยตาที่ปิดสนิท คู่มือฉบับนี้จะเปลี่ยนคุณจากเหยื่อรายย่อยให้กลายเป็นผู้ล่าระดับ Mastery ที่สับไม้เข้าออเดอร์ด้วยความแม่นยำและดุดัน
+# Mastery Trading Strategy Guide: Chart Architecture & Profit Execution (High Elite FX)
 
-1. ปรัชญาและธรรมชาติของตลาดทองคำ (The Nature of XAUUSD)
+Modern gold trading (XAUUSD) is not merely about chart lines; it is about deciphering market **intent** through Price Action and Liquidity dynamics. Entering a trade without market context is equivalent to stepping onto a battlefield blindfolded. This playbook transforms retail vulnerability into institutional precision, equipping the trader with mastery-level execution to strike orders with speed, sharpness, and conviction.
 
-ก่อนที่คุณจะควักเงินเดิมพัน คุณต้อง "ตีสนิท" กับนิสัยของสินทรัพย์นั้นให้ขาด เทรดเดอร์ระดับ Mastery จะไม่พยายามบังคับตลาดให้เป็นไปตามใจ แต่จะเฝ้าสังเกตพฤติกรรมราคาจนเห็น "ร่องรอย" ที่ตลาดทิ้งไว้ การรู้นิสัยคือเกราะป้องกันที่แข็งแกร่งที่สุดในโลกการเงิน
+---
 
-กฎ 80/20 และนิสัยการหลอกล่อของทองคำ
+### 1. Philosophy & Nature of the Gold Market (The Nature of XAUUSD)
 
-ทองคำมีสภาวะเป็น Sideway ถึง 80% และเป็น Trend เพียง 20% เท่านั้น ความลับของ High Elite FX คือการเลิกเล่น Breakout แบบทั่วไปที่รายย่อยมักจะกระโดดใส่ แต่เราจะรอเล่น "Reversal Breakout" หรือจังหวะที่ราคาทำท่าจะเบรกเพื่อกวาดสภาพคล่อง (Liquidity Hunt) ก่อนจะกลับตัวอย่างรุนแรง
+Before committing capital, one must intimately master the unique behavior of the asset. A mastery-level trader never forces their will upon the market; instead, they patiently observe price action until the market leaves its institutional footprint. Deep familiarity with asset character is the ultimate shield in financial markets.
 
-การปรับตัวตามยุคสมัย (Volume & Volatility)
+#### The 80/20 Rule & Deceptive Market Behavior
+Gold operates in a consolidation/sideways state approximately **80% of the time**, trending only **20% of the time**. The foundational secret of High Elite FX is abandoning standard retail breakout entries—which are frequently trapped—and executing **"Reversal Breakouts"** (waiting for the market to fake a breakout to hunt liquidity before violently reversing).
 
-ในยุคที่สภาพคล่องสูงขึ้น ระยะวิ่ง (Points) ใน Timeframe M1 เปลี่ยนไปอย่างมหาศาล จากเดิมที่วิ่งเพียง 200-300 จุด ปัจจุบัน ADR (Average Daily Range) พุ่งสูงขึ้น โดยเฉพาะช่วงข่าวที่ M1 อาจกระชากได้ถึง 500-1,000 จุด หากคุณยังใช้ไม้บรรทัดเดิมวัดตลาดปัจจุบัน คุณจะกลายเป็นสภาพคล่องให้คนอื่นทันที
+#### Modern Volatility & Liquidity Expansion (Volume & Volatility)
+In the current era of elevated liquidity and algorithmic participation, intraday range volatility on lower timeframes (M1) has expanded drastically. Where M1 once offered standard 200–300 point movements, **Average Daily Range (ADR)** surges now regularly produce 500–1,000 point impulse waves during news and high-volume sessions. Applying outdated yardsticks turns the trader directly into exit liquidity for institutional players.
 
-2. สถาปัตยกรรมโครงสร้างตลาด (Market Structure Mastery)
+---
 
-โครงสร้างตลาดคือ "แผนที่เดินเรือ" หากคุณระบุทิศทางหลักผิด ทุกอย่างคือศูนย์ การระบุแนวโน้มที่แท้จริงคือจุดเริ่มต้นของการได้เปรียบที่ยั่งยืน
+### 2. Market Structure Architecture (Market Structure Mastery)
 
-การระบุสวิงและจุดหมุน (Major vs. Minor Structure)
+Market structure is the master navigational chart. Misidentifying the structural trend invalidates all subsequent analysis. True trend identification is the foundation of sustainable edge.
 
-* Boss Major (Break of Structure): การเบรกโครงสร้างหลักที่ส่งราคาไปทำจุดสูงสุดหรือต่ำสุดใหม่ ต้องได้รับการยืนยันด้วยเนื้อเทียนและการทิ้ง Imbalance (FVG)
-* Boss Minor: การเบรกภายในโครงสร้างย่อย (Internal Structure) ซึ่งมักเป็นเพียงการหลอกล่อเพื่อสะสมพลัง
-* Strong High / Strong Low: จุดสูงสุดหรือต่ำสุดที่แข็งแกร่งจริง จะต้องเกิดหลังจากมีการ "กิน Inducement" หรือ "Sweep Liquidity" เท่านั้น หากยังไม่มีการกวาดล้างสภาพคล่อง จุดนั้นคือจุดที่รอวันโดนทลาย
+#### Swing Identification & Pivot Points (Major vs. Minor Structure)
+* **BOS Major (Break of Structure):** A decisive break of macro/primary swing points that establishes fresh highs or lows. It requires confirmation via candle body closes (not mere wicks) leaving an imbalance / Fair Value Gap (FVG).
+* **BOS Minor:** Structural breaks within internal ranges; these frequently serve as deceptive liquidity generation rather than genuine directional shifts.
+* **Strong High / Strong Low:** A swing high or low is validated as truly structural only after it has consumed **Inducement** or executed a **Liquidity Sweep**. Any swing point formed without sweeping liquidity remains vulnerable to institutional invalidation.
 
-กลไก CID / CHoCH และการเปลี่ยนหน้าเทรด
+#### CID / CHoCH Dynamics & Directional Bias Shifts
+**CID (Change in Direction)** or **CHoCH (Change of Character)** is the primary early warning of trend transition. However, a legitimate CHoCH must display displacement momentum and leave clear imbalance (FVG). A mere wick sweep beyond a pivot level represents liquidity collection for trend continuation rather than an authentic reversal.
 
-CID (Change in Direction) หรือ CHoCH (Change of Character) คือสัญญาณแรกของการเปลี่ยนทิศทาง แต่จงจำไว้ว่า CHoCH ที่ "จริง" ต้องมีแรงส่ง (Momentum) และทิ้งช่องว่างราคา (FVG) ไว้อย่างชัดเจน หากเบรกเพียงไส้เทียน (Sweep) ให้มองว่าเป็นเพียงการกวาดสภาพคล่องเพื่อลงต่อหรือขึ้นต่อตามทิศทางเดิม
+#### Multi-Timeframe Alignment (HTF to LTF Alignment)
+Institutional execution leverages **M30 or H1** to establish primary bias and delineate Points of Interest (POI). The trader then drills down to **M1** to pinpoint surgical entry triggers. Alignment between macro zones and micro triggers unlocks asymmetric Risk-Reward (RR) ratios.
 
-การวิเคราะห์ข้าม Timeframe (HTF to LTF Alignment)
+---
 
-มืออาชีพใช้ M30 หรือ H1 เพื่อหาทิศทางหลักและกำหนดโซนสังหาร (POI) จากนั้นจึงย่อยไปที่ M1 เพื่อหาจุดเข้าที่คมชัดที่สุด การ Alignment ของทั้งสองไทม์เฟรมคือจุดตายที่จะทำให้คุณได้ RR (Risk-Reward) ที่มหาศาล
+### 3. Liquidity Psychology & Retail Traps (The Retail Trap & Liquidity Sweeps)
 
-3. จิตวิทยาของ Liquidity และกับดักรายย่อย (The Retail Trap & Liquidity Sweeps)
+Markets are propelled by the stop-loss clusters of market participants. The core mandate of the mastery trader is to locate the "footprints of trapped losers"—identifying who is offside and where stop hunts will materialize before executing.
 
-ตลาดขับเคลื่อนด้วย Stop Loss ของผู้เล่นในตลาด หน้าที่ของคุณคือ "จับจ้องร่องรอยของผู้แพ้" หาให้เจอว่าใครกำลังโดนลาก และใครกำลังโดน Stop Hunt ก่อนที่คุณจะลงมือ
+#### Retail Liquidity vs. Institutional POI
 
-Retail Liquidity vs. Institutional POI
+| Pattern / Structure | Retail Entry Logic (Retail Trap) | Institutional Liquidity Sweep (Smart Money Strike) |
+|---|---|---|
+| **Support / Resistance** | Enters immediately upon price touching a marked level | Drives price through the level to trigger retail stop losses (Fake Out) before executing violent reversal |
+| **Equal Highs / Lows (EQH/EQL)** | Viewed as formidable double tops/bottoms | Target liquidity pools designated for complete liquidation |
+| **Trendlines** | Enters on repeated bounces along the trendline | Engineers a liquidity sweep below/above the trendline to flush out retail positions |
 
-ประเภท	จุดที่รายย่อยรอเข้า (Retail Entry)	จุดที่ Smart Money สังหาร (Liquidity Sweep)
-แนวรับ/แนวต้าน	รอเข้าเมื่อราคาแตะเส้นที่ตีไว้อย่างชัดเจน	รอให้ราคาทะลุเส้นกิน SL (Fake Out) แล้วค่อย Reversal
-Equal H/L	มองว่าเป็นจุดกลับตัวที่มั่นคง	มองเป็น "เป้าหมาย" ที่ต้องถูกกวาดล้างให้สิ้นซาก
-Trendline	รอให้ราคาประคองตัวตามเส้น	รอจังหวะหลุดเส้น (Liquidity Sweep) เพื่อทำลายความหวังรายย่อย
+#### The "Wait for the Loser to Fail First" Philosophy
+Never be the pioneer entering an untested battlefield. Actively locate the **Fake Out Zone**. Zones that appear overly obvious on retail charts are invariably traps. A mastery trader allows the manipulation phase to liquidate retail stops completely; only once trapped volume is expunged does the institutional entry trigger.
 
-กลยุทธ์ "รอให้คนแพ้ก่อน แล้วเราจะชนะ"
+---
 
-อย่าเป็นคนแรกที่เข้าสนามรบ จงมองหา Fake Out Zone โซนที่ชัดเจนเกินไปมักจะเป็นกับดัก Mastery Trader จะรอให้ราคาทำจังหวะ Manipulation กวาดล้างสภาพคล่องของรายย่อยให้สิ้นซากเสียก่อน เมื่อเห็นแรงขับเคลื่อนของผู้แพ้ถูกกวาดออกไป นั่นคือจังหวะที่คุณจะเริ่มลงมือ
+### 4. Advanced Tactical Maneuvers (Advanced Trading Maneuvers)
 
-4. เทคนิคและท่าไม้ตายระดับสูง (Advanced Trading Maneuvers)
+Mastery demands high-conviction signature maneuvers deployed precisely within their intended market contexts:
 
-การเป็น Mastery คือการมี "ท่าไม้ตายสังหาร" ที่คุณมั่นใจและรู้วิธีใช้ในสภาวะที่ถูกต้อง
+* **AMD (Accumulation, Manipulation, Distribution):** The critical task is isolating the Manipulation Zone. This zone constitutes the primary POI where the trader awaits lower-timeframe confirmation (1-2-3 Entry) to enter alongside genuine distribution.
+* **Clean Traffic (CT=CT):** When prior price action on the left displays rapid, frictionless displacement with imbalance, the right side exhibits a corresponding price recovery ("matching price" / runway momentum) once liquidity is cleared. Typically occurs following aggressive V-shape reversals or liquidity expulsions.
+* **Fail Swing (Structural Invalidation Point):** A signature High Elite FX technique where price violently rejects and fails to print a higher high or lower low despite testing a key level. Represents one of the most potent structural reversal indicators.
+* **3D (Three Drives) Pattern:** A systematic 1-2-3 consecutive drive structure accompanied by pronounced divergence on the third drive (Drive 3), presenting a highly reliable, low-risk reversal setup.
 
-* AMD (Accumulation, Manipulation, Distribution): หัวใจหลักคือการระบุ Manipulation Zone ให้เจอ เพราะโซนนี้คือ POI หลัก ที่เราจะรอการ Confirm (1-2-3 Entry) เพื่อหาจังหวะสวนหรือตามเทรนด์ที่แท้จริง
-* Clean Traffic (CT=CT): เมื่อราคาฝั่งซ้ายทิ้งตัวลงแรงหรือขึ้นแรงโดยไม่มีสิ่งกีดขวาง (Imbalance) ราคาฝั่งขวามักจะเกิดการ "คืนราคา" (Matching Price) หรือเกิด Runway ที่รุนแรงหลังจากเคลียร์สภาพคล่อง มักเกิดหลังจากราคาทำ V-Shape หรือราคา "โดนลากแล้วคายคืน"
-* Fail Swing (จุดตายของโครงสร้าง): เป็นเทคนิคที่ High Elite FX ใช้เป็นคนแรกๆ คือการที่ราคาปฏิเสธแรงส่ง (Reject) อย่างรุนแรงจนไม่สามารถทำ New High/Low ได้ แม้จะทดสอบ Key Level แล้วก็ตาม เป็นสัญญาณของการ Reversal ที่ทรงพลังที่สุด
-* 3D (Three Drives) Pattern: การนับจังหวะราคา 1-2-3 ร่วมกับ Divergence ที่ชัดเจนในจังหวะที่ 3 (Drive 3) คือจุดกลับตัวที่ปลอดภัยและแม่นยำที่สุด
+---
 
-5. ระบบการเข้าเทรดและการบริหารออเดอร์ (Execution & Order Management)
+### 5. Execution System & Order Management (Execution & Order Management)
 
-ฝีมือการเข้าเทรดจะไร้ค่าหากคุณไม่มีศิลปะในการบริหารออเดอร์ จำไว้ว่า "การเข้าโดยไร้การ Confirm คือการพนัน แต่การเข้าด้วย 1-2-3 คือการทำธุรกิจ"
+Technical analysis is futile without disciplined order management: *"Entering without confirmation is gambling; entering on a confirmed 1-2-3 trigger is running a business."*
 
-การ Confirm จังหวะสังหาร (The 1-2-3 Entry)
+#### The 1-2-3 Entry Confirmation Trigger
+Monitored on lower timeframes (M1/M5) to compress stop loss exposure to **300–500 points**:
+1. **Break:** Micro-structural break of local internal structure.
+2. **Retest:** Corrective pullback to test the Supply/Demand or Flip Zone.
+3. **Reject:** Clear price rejection with momentum candle response (Immediate manual execution).
 
-สังเกตใน LTF (M1) เพื่อรีดระยะ Stop Loss ให้สั้นที่สุด (ประมาณ 300-500 จุด):
+#### Profit Taking Protocol ("Lock Profits or Lose Them")
+* **Strict TP Rules:** When the primary objective is met, realize profits immediately. Never let greed erase earned gains.
+* **70–80% Partial Close:** Liquidate **70% to 80%** of position size at 1:1 or 1:1.5 RR to guarantee net profitability and remove psychological pressure.
+* **Bonus Runner (20–30%):** Move the remaining position to Breakeven / Risk-Free, allowing the runner to capture multi-thousand point trend extensions without anxiety.
 
-1. Break: ราคาเบรกโครงสร้างย่อย
-2. Retest: ราคาย่อกลับมาทดสอบโซน Supply/Demand หรือ Flip Zone
-3. Reject: ราคาแสดงสัญญาณปฏิเสธที่ชัดเจน (Manual Entry ทันที)
+#### Safety Stop Loss (Safety SL)
+In modern XAUUSD M1 trading, maintain a standard stop loss buffer of **300–500 points** positioned strictly beyond swing wicks or prior high/low structural extremes to safeguard against pre-expansion liquidity sweeps.
 
-กลยุทธ์การเก็บกำไร "ไม่ Take คืออดแดก"
+---
 
-* กฎการ TP: เมื่อถึงเป้าหมายแรกต้องเก็บกำไรทันที อย่าปล่อยให้ความโลภกลืนกินเงินที่คุณได้มาแล้ว
-* 70-80% Partial Close: แบ่งปิดกำไรที่ระยะ 1:1 หรือ 1:1.5 เพื่อรักษาทุนและลดความกดดัน
-* Bonus Trade: เหลือออเดอร์ 20-30% พร้อมตั้งกันหน้าทุน (Risk-Free) เพื่อรันเทรนด์ยาวระดับหมื่นจุดโดยไร้ความกังวล
+### 6. Professional Discipline & Portfolio Architecture (Professional Discipline)
 
-การตั้ง Stop Loss ที่ปลอดภัย (Safety SL)
+Discipline and capital allocation outweigh technical acumen. If you cannot govern your psychology, the market will liquidate your capital.
 
-ในตลาดทองคำ M1 ยุคนี้ SL ควรเผื่อไว้ที่ 300-500 จุด และควรตั้งไว้ที่ปลายไส้เทียนหรือ High/Low ก่อนหน้า เพื่อป้องกันการโดนกวาดสภาพคล่องก่อนที่ราคาจะไปตามทิศทางจริง
+#### The 15 / 35 / 50 Success Distribution
+1. **Technique (15%):** The specific operational setup and chart mechanics.
+2. **Mindset (35%):** Psychological resilience, emotional detachment, and accepting loss.
+3. **Money Management (50%):** The absolute cornerstone of longevity and profitability.
 
-6. จิตวิทยาเทรดเดอร์อาชีพและการบริหารพอร์ต (Professional Discipline)
+#### Risk Allocation & Sub-Account Architecture (Port Splitting)
+Professional operations utilize a **Fixed Risk model of 0.25% to 1.0%** per trade for core consistency. To eliminate emotional paralysis during high-risk, high-reward sweep maneuvers, deploy dedicated sub-portfolios (**"Port B, C, D"**) isolated from the primary capital pool. Any loss incurred within a sub-portfolio is strictly quarantined, freeing the trader to execute aggressive setups unencumbered by fear.
 
-วินัยและการบริหารพอร์ตสำคัญกว่าเทคนิค 100% หากคุณคุมตัวเองไม่ได้ ตลาดจะคุมคุณเอง
+#### Inculcating Discipline into Reflex
+Discipline must be practiced repeatedly until it becomes subconscious instinct:
+* **Ruthless Loss Acceptance:** When invalidated, cut positions immediately. Averaging down or trailing stop losses backward is strictly forbidden.
+* **Eliminate FOMO:** If price fails to reach the designated POI or trigger a 1-2-3 confirmation, remain flat. Standing aside is an active capital preservation decision.
 
-กฎสัดส่วนความสำเร็จ 15 / 35 / 50
+---
 
-1. Technique (15%): ระบบเทรดที่คุณถูกจริตและเข้าใจมันอย่างถ่องแท้
-2. Mindset (35%): จิตวิทยาการยอมรับความพ่ายแพ้และการคุมอารมณ์
-3. Money Management (50%): หัวใจสำคัญที่แท้จริงของการอยู่รอด
-
-การจัดการความเสี่ยงและ "การแบ่งพอร์ตลูก"
-
-เทรดเดอร์อาชีพใช้ Fixed Risk 0.25% - 1% ต่อเทรดเพื่อความยั่งยืน แต่เพื่อลดความกดดันในการเล่นจังหวะเสี่ยงสูง (High Risk) ให้ใช้การ "แบ่งพอร์ตลูก" (Port B, C, D) แยกออกมาจากพอร์ตหลัก หากพอร์ตลูกเสียหายจะจำกัดอยู่ที่จำนวนเงินที่แยกออกมาเท่านั้น ช่วยให้คุณเทรดได้อย่างอิสระภายใต้สภาวะกดดัน
-
-การเปลี่ยนวินัยให้กลายเป็น "สันดาน"
-
-การฝึกฝนต้องทำให้วินัยฝังรากลึกจนกลายเป็นสัญชาตญาณ:
-
-* ยอมรับความพ่ายแพ้: เมื่อผิดแผนต้อง Cut Loss ทันที ไม่มีคำว่าถัวหรือเลื่อน SL
-* ระงับ FOMO: หากราคาไม่เข้าโซน POI ที่กำหนดไว้ ให้ "รอ" เพราะการไม่เทรดคือการรักษาทุนอย่างหนึ่ง
-
-บทสรุป: การก้าวสู่ระดับ Mastery ไม่ได้จบลงที่ความรู้ในกระดาษ แต่เริ่มจากการลงมือทำซ้ำๆ จนวินัยกลายเป็นสันดาน จงหาผู้แพ้ให้เจอ แล้วคุณจะเป็นผู้ชนะในสมรภูมินี้อย่างยั่งยืน
+### Conclusion
+Mastery is not achieved through theoretical study, but through relentless, disciplined repetition until execution becomes second nature. Locate the trapped market participant, await institutional confirmation, and execute with absolute clarity.

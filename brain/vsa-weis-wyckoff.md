@@ -1,8 +1,11 @@
 ---
 id: vsa-weis-wyckoff
 title: "Volume Spread Analysis (VSA) & Weis-Wyckoff Method"
+role: tertiary-structure
+priority: 3
+layer: 2-structure
+supports: trade-setup.md
 scope: VSA, Wyckoff, support/resistance, ice line, springs, upthrusts, effort vs reward, bar chart reading
-layer: 4-price-action
 keywords: Wyckoff, VSA, ice line, axis line, spring, upthrust, shortening of thrust, absorption, hinge, effort vs reward, trend channel, reverse channel
 sections:
   - "1. Strategic Foundation: Geometry of the Market"

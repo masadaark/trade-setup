@@ -1,8 +1,11 @@
 ---
 id: cot-intelligence
 title: Leveraging COT Insider Intelligence
+role: secondary-confluence
+priority: 2
+layer: 1-confluence
+supports: trade-setup.md
 scope: COT report, CFTC, commercial hedgers, large speculators, net position, COT index, sentiment
-layer: 2-positioning
 keywords: COT, CFTC, commercial, speculator, net position, COT index, 40-point surge, mirror image, open interest, smart money
 sections:
   - "1. Strategic Foundation of the COT"

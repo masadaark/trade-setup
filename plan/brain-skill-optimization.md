@@ -1,140 +1,101 @@
-# Optimize `marker-analyzer` Skill & Reorganize `brain/` for AI-Optimal Consumption
+# Plan: Brain Trading Hierarchy & `marker-analyzer` Skill Optimization
 
-## Goal
+## 1. Objective
 
-Two-pronged optimization:
-1. **Skill** — Make `marker-analyzer` faster, less hallucination-prone, and consume fewer tokens
-2. **Brain** — Reorganize content structure so AI can navigate, scope, and digest information efficiently — **without changing any knowledge content**
-
----
-
-## Current Problems Identified
-
-### Skill (`marker-analyzer/SKILL.md`)
-
-| Problem | Impact |
-|---------|--------|
-| **No topic index / routing table** | AI reads ALL 9 files (~99 KB / ~25k tokens) on every query, even when only 1-2 files are relevant |
-| **No scoping rules** | AI doesn't know which file answers which question type → reads everything → slow + expensive |
-| **"Read the files" instruction is vague** | Encourages full-file reads instead of targeted grep → token waste |
-| **No output format constraints** | AI generates long, essay-like responses → more tokens out |
-| **No hallucination guardrails** | Only "Stay Grounded" — no explicit "say I don't know" or confidence-threshold rules |
-| **Typo in skill name** | `marker-analyzer` should probably be `market-analyzer` but we'll preserve the name for compatibility |
-
-### Brain (`brain/`)
-
-| Problem | Impact |
-|---------|--------|
-| **`VSA.md` and `Weis-Wyckoff Method.md` are 100% identical** (11,354 bytes each) | Duplicate data → double token cost, confusion for AI |
-| **No manifest/index file** | AI must read file names and guess content scope → slow routing |
-| **Files have spaces in names** | Harder for grep/tool calls, potential encoding issues |
-| **No YAML frontmatter** | AI can't quickly scan metadata (topic, keywords, scope) without reading full content |
-| **Wall-of-text paragraphs** | Dense prose without line breaks forces AI to load entire sections to find a fact |
-| **Tables embedded as inline text** | Markdown tables collapsed into single lines → hard for AI to parse |
-| **`trade-setup.md` is in Thai** (all others English) | Language context-switch costs extra tokens for bilingual processing |
-| **No logical reading order** | AI doesn't know the top-down analysis flow (Macro → Micro) |
+Establish a structured, hierarchical trade planning architecture across `brain/` and `.agents/skills/marker-analyzer/SKILL.md`:
+1. **Primary Core (`brain/trade-setup.md`)**: The central playbook and execution blueprint for all trade setups (Market Structure, Liquidity Sweeps, AMD Pattern, 1-2-3 Entry Confirmation, Risk Management 15/35/50, Port Splitting).
+2. **Secondary Confluence (`brain/cot-intelligence.md` & `brain/algorithmic-strategy.md`)**: Quantitative and institutional filters that validate directional bias (COT Smart Money/Commercials, 40-point surge) and statistical edge (Mean reversion, stationarity, half-life decay, microstructure rigor).
+3. **Tertiary Subordinate Layer (Market Profile, Auction Market Theory, VSA/Wyckoff)**: Key volume levels, Value Areas (VAH/VAL/POC), Day Types, and bar-by-bar absorption.
+4. **Context Layer (Global Macro, Intermarket)**: Macro regimes, policy rates, and Gold/USD/Yield correlations.
 
 ---
 
-## Proposed Changes
+## 2. Trading Plan Formulation Hierarchy (Mermaid Diagram)
 
-### Component 1: Brain Directory Reorganization
+```mermaid
+flowchart TD
+    subgraph Tier1 ["Tier 1: PRIMARY CORE (The Master Playbook)"]
+        TS["brain/trade-setup.md<br/>• Market Structure (Major/Minor BOS, CHoCH, Inducement)<br/>• Liquidity Sweep & Retail Trap Identification<br/>• Setup Patterns: AMD, Clean Traffic, Fail Swing, 3D<br/>• Execution: 1-2-3 Entry Confirmation (M1/M5)<br/>• Risk & Port Management (15/35/50, Safety SL, Partial TP 70-80%, Port B/C/D)"]
+    end
 
-> [!IMPORTANT]
-> **Zero content changes.** Only structural improvements: renaming files, adding frontmatter headers, adding an index file, and fixing the duplicate file issue.
+    subgraph Tier2 ["Tier 2: SECONDARY CONFLUENCE (Quantitative & Institutional)"]
+        COT["brain/cot-intelligence.md<br/>• Commercial Hedger Net Positions<br/>• COT Index (36M / 13W)<br/>• 40-Point Institutional Surge<br/>• Commercial Capitulation"]
+        ALGO["brain/algorithmic-strategy.md<br/>• Mean Reversion & Stationarity (ADF, Hurst < 0.5)<br/>• Half-Life of Decay (Holding time optimization)<br/>• Cointegration & Spread Testing<br/>• Bias Prevention (No look-ahead / data-snooping)"]
+    end
 
-#### [NEW] `brain/README.md` — Master Index & Routing Table
+    subgraph Tier3 ["Tier 3: TERTIARY STRUCTURE (Auction & Microstructure)"]
+        AMT["brain/auction-market-theory.md<br/>Day Type, IB Range, 80% Rule, Open types"]
+        MP["brain/market-profile.md<br/>VAH, VAL, POC, Single Prints, Excess"]
+        VSA["brain/vsa-weis-wyckoff.md<br/>Effort vs Reward, Springs, Upthrusts, Ice Line"]
+    end
 
-A compact routing manifest (~30 lines) that the AI reads FIRST to determine which file(s) to open. Contains:
-- Ordered reading hierarchy (Macro → Micro)
-- Per-file: filename, scope keywords, "when to read" description
-- Token-budget guidance
+    subgraph Tier4 ["Tier 4: CONTEXTUAL MACRO (Background Environment)"]
+        GM["brain/global-macro.md<br/>Central Bank Rates, GDP/CPI, Risk Regimes"]
+        IM["brain/intermarket.md<br/>Gold-USD Inversion, 10Y Yields, Oil"]
+    end
 
-#### File Renames (spaces → kebab-case)
-
-| Current Name | New Name |
-|-------------|----------|
-| `Algorithmic Strategy Framework.md` | `algorithmic-strategy.md` |
-| `Global Macro Framework.md` | `global-macro.md` |
-| `Intermarket.md` | `intermarket.md` (no change) |
-| `Leveraging COT Insider Intelligence.md` | `cot-intelligence.md` |
-| `Market Profile Trade.md` | `market-profile.md` |
-| `The Auction Market Theory Framework.md` | `auction-market-theory.md` |
-| `Volume Spread Analysis (VSA).md` | `vsa-weis-wyckoff.md` (merge the duplicate) |
-| `Weis-Wyckoff Method.md` | **DELETE** (identical to VSA) |
-| `trade-setup.md` | `trade-setup.md` (no change) |
-
-#### Add YAML Frontmatter to Each File
-
-Each brain file gets a small frontmatter block (~5 lines) with:
-```yaml
----
-id: global-macro
-scope: macro regime, GDP, inflation, central banks, FX, equities, commodities
-layer: 1-macro
-keywords: regime, policy rate, impossible trinity, ISM, Baltic Dry
----
+    Tier4 -.->|Macro Context| Tier2
+    Tier2 ==>|Validate Institutional & Statistical Bias| TS
+    Tier3 -->|Confirm Structure & Key Levels| TS
+    TS ==> TRADE_PLAN["🎯 ACTIONABLE TRADE PLAN<br/>Bias + POI + Setup + 1-2-3 Trigger + SL/TP + Port Allocation"]
 ```
 
-This lets the AI scan scope without reading the full file (~50 tokens vs ~3000 tokens per file).
+---
 
-#### Format Improvements (no content changes)
+## 3. Step-by-Step Trade Plan Formulation Protocol
 
-- Break wall-of-text paragraphs into proper markdown paragraphs (add line breaks between logical sections)
-- Format inline tables as proper markdown tables
-- Ensure consistent heading hierarchy (`#` → `##` → `###`)
+When the AI creates or evaluates a trade plan, it MUST follow this 4-step sequence:
+
+```
+Step 1: Background & Macro Check (Tier 4)
+  └─ Gold/USD correlation, Yield dynamics, Central Bank bias.
+
+Step 2: Confluence & Statistical Filters (Tier 2)
+  ├─ COT: Are Commercial Hedgers aligned? Any 40-point surge or extreme positioning?
+  └─ Algo: Is price in a mean-reverting regime (Hurst < 0.5)? What is the half-life?
+
+Step 3: Structural & Profile Location (Tier 3)
+  └─ Where is price relative to VAH/VAL/POC, Initial Balance, or Wyckoff Ice/Axis line?
+
+Step 4: CORE EXECUTION BLUEPRINT (Tier 1 - trade-setup.md) [MANDATORY]
+  ├─ Structure: Identify Major/Minor BOS, CHoCH, and Inducement
+  ├─ Liquidity Target: Where is the Retail Trap / Stop Hunt happening?
+  ├─ Pattern: Identify AMD Manipulation Zone, Clean Traffic, Fail Swing, or 3D
+  ├─ Trigger: Confirm via 1-2-3 Entry (Break -> Retest -> Reject on M1/M5)
+  └─ Risk Blueprint: Fixed Risk 0.25-1%, Safety SL 300-500 pts, Partial Close 70-80% at 1:1-1.5, Run 20-30% Risk-Free, Port B/C/D allocation
+```
 
 ---
 
-### Component 2: Skill SKILL.md Rewrite
+## 4. File Changes Summary
 
-#### [MODIFY] `.agents/skills/marker-analyzer/SKILL.md`
+### Component 1: `brain/README.md` [NEW]
+Create a master index and routing file documenting:
+- The 4-Tier Hierarchy (Core -> Secondary Confluence -> Tertiary Structure -> Context)
+- Trade Plan Formulation Protocol
+- Quick Routing Table (Topic -> File -> Priority)
+- Token budget rules for efficient lookup
 
-Complete rewrite with the following improvements:
+### Component 2: YAML Frontmatter Updates across `brain/`
+- **`brain/trade-setup.md`**: Add frontmatter with `role: primary-core`, `priority: 1`, `layer: 0-core-execution`.
+- **`brain/cot-intelligence.md`**: Update frontmatter with `role: secondary-confluence`, `priority: 2`.
+- **`brain/algorithmic-strategy.md`**: Add frontmatter with `role: secondary-confluence`, `priority: 2`.
+- **`brain/auction-market-theory.md`**, **`brain/market-profile.md`**, **`brain/vsa-weis-wyckoff.md`**: Update frontmatter with `role: tertiary-structure`, `priority: 3`.
+- **`brain/global-macro.md`**, **`brain/intermarket.md`**: Update frontmatter with `role: contextual-macro`, `priority: 4`.
 
-1. **Routing Table** — Inline topic→file mapping so the AI knows exactly which 1-2 files to read
-2. **Two-Phase Protocol**:
-   - Phase 1: Read `brain/README.md` (index) → identify relevant file(s)
-   - Phase 2: Grep for specific keywords → Read only the relevant sections
-3. **Token Budget Rules** — "Read at most 2 brain files per query"
-4. **Hallucination Guardrails**:
-   - "If the answer is not found in brain/, say 'ไม่พบข้อมูลนี้ใน Knowledge Base'"
-   - "Never extrapolate beyond what the brain files state"
-   - "Quote the source section heading when citing"
-5. **Output Format Constraints**:
-   - Concise bullet-point answers (not essays)
-   - Max 3-5 key points per response
-   - Always end with source citation
-
-#### [NEW] `.agents/skills/marker-analyzer/references/topic-map.md`
-
-A detailed topic→file→section mapping for the AI to use as a lookup table. This is the "cheat sheet" that eliminates full-file scanning.
-
----
-
-## Open Questions
-
-> [!IMPORTANT]
-> **Duplicate file:** `Volume Spread Analysis (VSA).md` and `Weis-Wyckoff Method.md` are byte-for-byte identical. The content title inside both files says "Mastering the Trade Setup via the Weis-Wyckoff Method". Was there supposed to be a separate VSA document? Should I:
-> - (A) Keep one merged file `vsa-weis-wyckoff.md` and delete the duplicate
-> - (B) Keep both names (as symlinks or copies) for backward compatibility
-
-> [!IMPORTANT]
-> **Thai content in `trade-setup.md`:** This file is entirely in Thai while all others are in English. This causes extra token overhead for bilingual processing. Should I:
-> - (A) Keep it in Thai as-is (it's the master trading playbook, language is intentional)
-> - (B) Add an English summary frontmatter while keeping Thai body
+### Component 3: Skill `.agents/skills/marker-analyzer/SKILL.md` [MODIFY]
+- Update instructions to anchor trade planning directly on `brain/trade-setup.md`.
+- Define the two-phase routing:
+  1. For Trade Planning queries: Load `trade-setup.md` as primary, cross-reference `cot-intelligence.md` and `algorithmic-strategy.md` as confluence.
+  2. For Specific Concept queries: Target the specific file directly using the lookup table.
+- Replace all outdated filenames (`Algorithmic Strategy Framework.md`, etc.) with current kebab-case filenames.
+- Enforce token-efficient output guidelines and hallucination guardrails.
 
 ---
 
-## Verification Plan
+## 5. Verification Plan
 
-### Automated Tests
-- `diff` before/after brain files to confirm zero content changes (only structure)
-- Verify no broken file references in SKILL.md
-- Confirm duplicate file is removed
-
-### Manual Verification
-- Test a sample query (e.g., "อธิบาย AMD pattern") and verify:
-  - AI reads only `trade-setup.md` (not all 9 files)
-  - Response cites the source
-  - Token count is significantly lower than before
+1. Confirm YAML frontmatter in all 8 brain files is valid and cleanly separated from content.
+2. Confirm `brain/README.md` accurately represents the hierarchy and routing paths.
+3. Validate `.agents/skills/marker-analyzer/SKILL.md` has updated filenames, priority rules, and execution protocol.
+4. Verify zero loss or corruption of existing analytical knowledge across all files.

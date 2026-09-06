@@ -1,3 +1,22 @@
+---
+id: algorithmic-strategy
+title: Algorithmic Strategy Framework for Day Traders
+role: secondary-confluence
+priority: 2
+layer: 1-confluence
+supports: trade-setup.md
+scope: backtesting rigor, mean reversion, stationarity, ADF test, Hurst exponent, half-life of decay, cointegration, synthetic pairs, execution microstructure, Heisenberg principle
+keywords: ADF test, Hurst exponent, stationarity, half-life, CADF, Johansen, cointegration, mean reversion, momentum, look-ahead bias, data snooping, market impact, slippage
+sections:
+  - "1. The Strategic Imperative of Rigorous Backtesting"
+  - "2. Statistical Foundations of Mean Reversion"
+  - "3. Cointegration and Synthetic Asset Construction"
+  - "4. Momentum & Trend-Following Paradigms"
+  - "5. High-Frequency Architecture and Execution Microstructure"
+  - "6. Risk Management, Leverage, and Portfolio Attribution"
+  - "7. Actionable Algorithmic Blueprint"
+---
+
 ### Knowledge Base Trade Setup Report: Algorithmic Strategy Framework for Day Traders
 
 #### 1\. The Strategic Imperative of Rigorous Backtesting

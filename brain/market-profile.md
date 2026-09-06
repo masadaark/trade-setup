@@ -1,8 +1,11 @@
 ---
 id: market-profile
 title: "Market Profile Trade Setup: Steidlmayer Method"
+role: tertiary-structure
+priority: 3
+layer: 2-structure
+supports: trade-setup.md
 scope: market profile, value area, TPO, bell curve, trade facilitation, initial balance
-layer: 3-structure
 keywords: Steidlmayer, TPO, value area, bell curve, price recurrence, initiating, responsive, excess, single print, auction point
 sections:
   - "1. Executive Foundation: Logic of Market Organization"

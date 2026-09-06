@@ -1,8 +1,11 @@
 ---
 id: auction-market-theory
 title: The Auction Market Theory Framework
+role: tertiary-structure
+priority: 3
+layer: 2-structure
+supports: trade-setup.md
 scope: auction process, day type classification, opening relationship, volume analysis, value area rule
-layer: 3-structure
 keywords: auction, day type, normal day, trend day, double distribution, initial balance, value area rule, gap, initiative, responsive, TPO
 sections:
   - "1. Philosophy of Market-Generated Information"

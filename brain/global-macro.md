@@ -1,8 +1,11 @@
 ---
 id: global-macro
 title: Global Macro Framework for Day Trading
+role: contextual-macro
+priority: 4
+layer: 3-macro
+supports: trade-setup.md
 scope: macro regime, GDP, inflation, central banks, FX, equities, commodities, fixed income
-layer: 1-macro
 keywords: regime, policy rate, impossible trinity, ISM, Baltic Dry, Sharpe, Sortino, VaR, discretionary, systematic, cognitive bias
 sections:
   - "1. Executive Introduction to Global Macro Day Trading"

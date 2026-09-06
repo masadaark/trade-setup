@@ -1,8 +1,11 @@
 ---
 id: intermarket
 title: Intermarket Trade Setup Report for Day Traders
+role: contextual-macro
+priority: 4
+layer: 3-macro
+supports: trade-setup.md
 scope: gold-USD correlation, currency strength, oil dynamics, interest rates, carry trade, equity/gold ratio
-layer: 1-macro
 keywords: Gold-Dollar inverse, AUD, CAD, JPY, oil shock, Volcker, carry trade, yield differential, Bretton Woods, OPEC
 sections:
   - "1. The Gold-Dollar Fundamental Inverse Anchor"
