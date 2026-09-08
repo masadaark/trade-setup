@@ -6,7 +6,6 @@ import CotPanel from './pages/CotPanel';
 import StructurePanel from './pages/StructurePanel';
 import PriceActionPanel from './pages/PriceActionPanel';
 import AlgoPanel from './pages/AlgoPanel';
-import RiskPanel from './pages/RiskPanel';
 
 function App() {
   return (
@@ -17,7 +16,6 @@ function App() {
         <Route path="structure" element={<StructurePanel />} />
         <Route path="price-action" element={<PriceActionPanel />} />
         <Route path="algo" element={<AlgoPanel />} />
-        <Route path="risk" element={<RiskPanel />} />
       </Route>
     </Routes>
   );

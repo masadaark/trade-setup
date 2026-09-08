@@ -12,12 +12,20 @@ interface BinanceMiniTicker {
 }
 
 const STREAM_TO_SYMBOL: Record<string, string> = {
+  PAXGUSDT: 'GC=F',
   XAUUSDT: 'GC=F',
+  BTCUSDT: 'BTC-USD',
 };
+
+interface BinanceCombinedPayload {
+  stream?: string;
+  data?: BinanceMiniTicker;
+}
 
 export function parseBinanceMessage(raw: string, fallbackSymbol = 'GC=F'): PriceTick | null {
   try {
-    const msg = JSON.parse(raw) as BinanceMiniTicker;
+    const parsed = JSON.parse(raw) as BinanceMiniTicker & BinanceCombinedPayload;
+    const msg = parsed.data ?? parsed;
     if (msg.e !== '24hrMiniTicker' || !msg.c) return null;
     const symbol = STREAM_TO_SYMBOL[msg.s] ?? fallbackSymbol;
     return {
@@ -35,10 +43,14 @@ export function parseBinanceMessage(raw: string, fallbackSymbol = 'GC=F'): Price
   }
 }
 
-export function createBinanceWsUrl(stream: string): string {
-  // XAUUSDT trades on USD-M futures — not Binance spot
-  if (stream.toLowerCase().startsWith('xau')) {
-    return `wss://fstream.binance.com/ws/${stream}`;
+export function createBinanceWsUrl(streams: string | readonly string[]): string {
+  const streamList = Array.isArray(streams) ? streams : [streams];
+  if (streamList.length === 0) {
+    return 'wss://stream.binance.com:9443/ws/paxgusdt@miniTicker';
   }
-  return `wss://stream.binance.com:9443/ws/${stream}`;
+  if (streamList.length === 1) {
+    return `wss://stream.binance.com:9443/ws/${streamList[0]}`;
+  }
+  return `wss://stream.binance.com:9443/stream?streams=${streamList.join('/')}`;
 }
+

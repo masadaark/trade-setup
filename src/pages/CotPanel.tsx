@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Radio } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -7,15 +7,17 @@ import { DataState, StatValue } from '../components/ui/data-state';
 import { useCotData } from '../hooks/useCotData';
 import { type CotAsset } from '../services/cftcApi';
 import { interpretCotSignal, computeCommercialNet } from '../services/marketAnalysis';
+import { useLivePrice } from '../hooks/useLivePrice';
+import { formatPrice } from '../hooks/useMarketData';
 import { cn } from '../lib/utils';
 import { Tooltip } from '../components/ui/tooltip';
 
-const ASSET_OPTIONS: { value: CotAsset; label: string; description: string }[] = [
-  { value: 'gold', label: 'Gold (XAU)', description: 'Non-commercial positioning in Gold futures' },
-  { value: 'crude', label: 'Crude Oil', description: 'WTI crude oil speculative positioning' },
-  { value: 'eurusd', label: 'EUR/USD', description: 'Euro FX futures speculative positioning' },
-  { value: 'gbpusd', label: 'GBP/USD', description: 'British Pound futures speculative positioning' },
-  { value: 'sp500', label: 'S&P 500', description: 'E-mini S&P 500 speculative positioning' },
+const ASSET_OPTIONS: { value: CotAsset; label: string; symbol: string; description: string }[] = [
+  { value: 'gold', label: 'Gold (XAU)', symbol: 'GC=F', description: 'Non-commercial positioning in Gold futures' },
+  { value: 'crude', label: 'Crude Oil', symbol: 'CL=F', description: 'WTI crude oil speculative positioning' },
+  { value: 'eurusd', label: 'EUR/USD', symbol: 'EURUSD=X', description: 'Euro FX futures speculative positioning' },
+  { value: 'gbpusd', label: 'GBP/USD', symbol: 'GBPUSD=X', description: 'British Pound futures speculative positioning' },
+  { value: 'sp500', label: 'S&P 500', symbol: 'ES=F', description: 'E-mini S&P 500 speculative positioning' },
 ];
 
 function formatNet(n: number): string {
@@ -30,6 +32,10 @@ function CotPanel() {
   const selectedOption = ASSET_OPTIONS.find((a) => a.value === selectedAsset)!;
 
   const { data, latestRecord, isLoading, error, refetch } = useCotData(selectedAsset);
+  const live = useLivePrice(selectedOption.symbol);
+  const livePrice = live.quote?.regularMarketPrice ?? null;
+  const isWs = live.isLive;
+  const liveChg = live.quote?.regularMarketChangePercent ?? null;
 
   const cotSignal = interpretCotSignal(data);
   const interpretation = data.length > 0 ? cotSignal : null;
@@ -43,7 +49,7 @@ function CotPanel() {
       <div>
         <h2 className="text-lg font-semibold">COT Intelligence</h2>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Step 2 of 6 — Track institutional positioning via CFTC Commitments of Traders report
+          Step 2 of 5 — Track institutional positioning via CFTC Commitments of Traders report
         </p>
       </div>
 
@@ -58,9 +64,17 @@ function CotPanel() {
             ))}
           </TabsList>
         </Tabs>
-        <span className="text-xs text-muted-foreground">
-          Source: CFTC Open Data (publicreporting.cftc.gov)
-        </span>
+        <div className="flex items-center gap-2">
+          {isWs && (
+            <Badge variant="success" className="gap-1 font-mono text-[11px]">
+              <Radio size={12} className="animate-pulse" />
+              WS Real-Time
+            </Badge>
+          )}
+          <span className="text-xs text-muted-foreground">
+            Source: CFTC Open Data + Live WebSocket
+          </span>
+        </div>
       </div>
 
       {/* Data error state */}
@@ -72,21 +86,42 @@ function CotPanel() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <Badge variant="muted" className="font-mono text-xs">
-                  CFTC — {selectedOption.description}
-                </Badge>
-                {interpretation && (
-                  <Badge variant={interpretation.variant} className="gap-1">
-                    {interpretation.variant === 'bullish' ? (
-                      <TrendingUp size={12} />
-                    ) : interpretation.variant === 'bearish' ? (
-                      <TrendingDown size={12} />
-                    ) : (
-                      <Minus size={12} />
-                    )}
-                    {interpretation.specLabel}
+                <div className="flex items-center gap-2">
+                  <Badge variant="muted" className="font-mono text-xs">
+                    CFTC — {selectedOption.description}
                   </Badge>
-                )}
+                  {isWs && (
+                    <Badge variant="success" className="gap-1 text-[11px]">
+                      <Radio size={12} className="animate-pulse" />
+                      Live Feed
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  {livePrice && (
+                    <div className="flex items-center gap-1.5 font-mono text-xs">
+                      <span className="text-muted-foreground">Spot Price:</span>
+                      <span className="font-bold text-foreground">{formatPrice(selectedOption.symbol, livePrice)}</span>
+                      {liveChg !== null && (
+                        <span className={cn('font-semibold text-[11px]', liveChg >= 0 ? 'text-success' : 'text-danger')}>
+                          {liveChg >= 0 ? '+' : ''}{liveChg.toFixed(2)}%
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {interpretation && (
+                    <Badge variant={interpretation.variant} className="gap-1">
+                      {interpretation.variant === 'bullish' ? (
+                        <TrendingUp size={12} />
+                      ) : interpretation.variant === 'bearish' ? (
+                        <TrendingDown size={12} />
+                      ) : (
+                        <Minus size={12} />
+                      )}
+                      {interpretation.specLabel}
+                    </Badge>
+                  )}
+                </div>
               </div>
               <CardTitle className="text-xl mt-2">
                 Speculator Positioning:{' '}
@@ -100,7 +135,7 @@ function CotPanel() {
             </CardHeader>
 
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* Non-commercial net */}
                 <div className="rounded-md bg-muted/50 p-4 space-y-1">
                   <Tooltip content="Trend-following speculators. Often wrong at extreme highs or lows.">
@@ -168,14 +203,40 @@ function CotPanel() {
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {cotIndex !== null && cotIndex >= 90
-                      ? 'Crowded long — contrarian caution'
+                      ? 'Crowded long — caution'
                       : cotIndex !== null && cotIndex <= 10
-                      ? 'Crowded short — contrarian opportunity'
+                      ? 'Crowded short — opportunity'
                       : cotIndex !== null && cotIndex >= 70
                       ? 'Bullish percentile'
                       : cotIndex !== null && cotIndex <= 30
                       ? 'Bearish percentile'
                       : 'Neutral range'}
+                  </span>
+                </div>
+
+                {/* Live Spot vs Positioning Confluence */}
+                <div className="rounded-md bg-muted/50 p-4 space-y-1">
+                  <Tooltip content="Compares weekly institutional positioning with real-time market spot price behavior.">
+                    <span className="text-xs text-muted-foreground font-medium block">
+                      Spot vs COT Alignment
+                    </span>
+                  </Tooltip>
+                  <span className="text-2xl font-bold font-tabular block text-foreground">
+                    <StatValue
+                      value={livePrice ? formatPrice(selectedOption.symbol, livePrice) : null}
+                      isLoading={live.isLoading}
+                    />
+                  </span>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {cotIndex !== null && cotIndex >= 90
+                      ? '⚠️ Crowded Long: Retracement risk'
+                      : cotIndex !== null && cotIndex <= 10
+                      ? '💡 Crowded Short: Reversal opportunity'
+                      : interpretation?.variant === 'bullish'
+                      ? '🟢 Smart Money Trend Supported'
+                      : interpretation?.variant === 'bearish'
+                      ? '🔴 Institutional Hedging Resistance'
+                      : '⚪ Balanced Institutional Flow'}
                   </span>
                 </div>
               </div>

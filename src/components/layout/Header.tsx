@@ -4,8 +4,7 @@ import { useTheme } from '../ThemeProvider';
 import { Badge } from '../ui/badge';
 import { useTradeSetups } from '../../hooks/useMarketData';
 import { useLivePrice } from '../../hooks/useLivePrice';
-import { useFredSeries } from '../../hooks/useFredData';
-import { computeMacroRegime, computeGlobalBias } from '../../services/marketAnalysis';
+import { computeGlobalBias } from '../../services/marketAnalysis';
 import { formatPrice } from '../../hooks/useMarketData';
 import { cn } from '../../lib/utils';
 
@@ -37,24 +36,55 @@ function ThemeToggle() {
   );
 }
 
+function HeaderTickerItem({
+  label,
+  symbol,
+  liveResult,
+}: {
+  label: string;
+  symbol: string;
+  liveResult: ReturnType<typeof useLivePrice>;
+}) {
+  const price = liveResult.quote?.regularMarketPrice;
+  const chg = liveResult.quote?.regularMarketChangePercent ?? 0;
+  if (price == null) {
+    return (
+      <div className="flex items-center gap-1.5 text-xs font-mono">
+        <span className="text-muted-foreground font-semibold">{label}</span>
+        <span className="text-muted-foreground animate-pulse text-[11px]">Connecting…</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 text-xs font-mono">
+      <span className="text-muted-foreground font-semibold">{label}</span>
+      <span className="font-bold text-foreground">{formatPrice(symbol, price)}</span>
+      <span className={cn('font-semibold text-[11px]', chg >= 0 ? 'text-success' : 'text-danger')}>
+        {chg >= 0 ? '+' : ''}{chg.toFixed(2)}%
+      </span>
+      {liveResult.isLive && (
+        <Badge variant="success" className="text-[9px] px-1 py-0 leading-none">WS</Badge>
+      )}
+    </div>
+  );
+}
+
 function Header() {
   const [timeStr, setTimeStr] = useState('');
   const session = getMarketSession();
-  const { bestSetup } = useTradeSetups();
-  const fedFunds = useFredSeries('fedFunds');
+  const { setups, bestSetup } = useTradeSetups();
   const gold = useLivePrice('GC=F');
-  const dxy = useLivePrice('DX-Y.NYB');
+  const btc = useLivePrice('BTC-USD');
 
-  const macroRegime = computeMacroRegime({
-    fedFundsRate: fedFunds.latestValue,
-    fedFundsPrev: fedFunds.prevValue,
-    yieldSpread: null,
-    cpiYoY: null,
-    goldChangePct: gold.quote?.regularMarketChangePercent ?? null,
-    dxyChangePct: dxy.quote?.regularMarketChangePercent ?? null,
-  });
+  const oilSetup = setups.find((s) => s.symbol === 'CL=F');
 
-  const bias = computeGlobalBias(macroRegime.verdict, bestSetup);
+  const goldChg = gold.quote?.regularMarketChangePercent ?? 0;
+  const btcChg = btc.quote?.regularMarketChangePercent ?? 0;
+  const macroVerdict: 'LONG' | 'SHORT' | 'NEUTRAL' =
+    goldChg > 0.1 || btcChg > 0.5 ? 'LONG' : goldChg < -0.1 || btcChg < -0.5 ? 'SHORT' : 'NEUTRAL';
+
+  const bias = computeGlobalBias(macroVerdict, bestSetup);
 
   useEffect(() => {
     const update = () => {
@@ -65,9 +95,6 @@ function Header() {
     const id = setInterval(update, 1000);
     return () => clearInterval(id);
   }, []);
-
-  const goldPrice = gold.quote?.regularMarketPrice;
-  const goldChg = gold.quote?.regularMarketChangePercent ?? 0;
 
   return (
     <header
@@ -117,23 +144,22 @@ function Header() {
           </Badge>
         </div>
 
-        {goldPrice != null && (
-          <>
-            <div className="hidden lg:block h-4 w-px bg-border" />
-            <div className="hidden lg:flex items-center gap-2 text-xs font-mono">
-              <span className="text-muted-foreground">XAU</span>
-              <span className="font-bold text-foreground">
-                {formatPrice('GC=F', goldPrice)}
-              </span>
-              <span className={cn('font-semibold', goldChg >= 0 ? 'text-success' : 'text-danger')}>
-                {goldChg >= 0 ? '+' : ''}{goldChg.toFixed(2)}%
-              </span>
-              {gold.isLive && (
-                <Badge variant="success" className="text-[10px] px-1 py-0">WS</Badge>
-              )}
-            </div>
-          </>
-        )}
+        {/* 3 Core Triggers: XAUUSD, BTCUSD, USOUSD */}
+        <div className="hidden lg:flex items-center gap-3">
+          <div className="h-4 w-px bg-border" />
+          <HeaderTickerItem label="XAU" symbol="GC=F" liveResult={gold} />
+          <div className="h-3 w-px bg-border/60" />
+          <HeaderTickerItem label="BTC" symbol="BTC-USD" liveResult={btc} />
+          {oilSetup && (
+            <>
+              <div className="h-3 w-px bg-border/60" />
+              <div className="flex items-center gap-1.5 text-xs font-mono">
+                <span className="text-muted-foreground font-semibold">USO</span>
+                <span className="font-bold text-foreground">{formatPrice('CL=F', oilSetup.entry)}</span>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-3">

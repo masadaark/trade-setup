@@ -1,4 +1,4 @@
-import { ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown, Radio } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { DataState, StatValue } from '../components/ui/data-state';
@@ -59,7 +59,7 @@ function MacroPanel() {
       <div>
         <h2 className="text-lg font-semibold">Macro Regime</h2>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Step 1 of 6 — Determine global macro bias before entering any trade
+          Step 1 of 5 — Determine global macro bias before entering any trade
         </p>
       </div>
 
@@ -86,10 +86,16 @@ function MacroPanel() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <Badge variant={macroRegime.variant} className="gap-1">
-              {macroRegime.verdict === 'LONG' ? <TrendingUp size={12} /> : macroRegime.verdict === 'SHORT' ? <TrendingDown size={12} /> : null}
-              {macroRegime.label}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant={macroRegime.variant} className="gap-1">
+                {macroRegime.verdict === 'LONG' ? <TrendingUp size={12} /> : macroRegime.verdict === 'SHORT' ? <TrendingDown size={12} /> : null}
+                {macroRegime.label}
+              </Badge>
+              <Badge variant="success" className="gap-1 font-mono text-[11px]">
+                <Radio size={12} className="animate-pulse" />
+                WS Intermarket Real-Time
+              </Badge>
+            </div>
             <span className="text-xs text-muted-foreground">Source: Binance WS + FRED + Frankfurter</span>
           </div>
           <CardTitle className="text-xl mt-2">

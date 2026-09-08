@@ -1,7 +1,8 @@
 /** Canonical dashboard symbol ↔ provider stream identifiers */
 
 export const BINANCE_STREAMS: Record<string, string> = {
-  'GC=F': 'xauusdt@miniTicker',
+  'GC=F': 'paxgusdt@miniTicker',
+  'BTC-USD': 'btcusdt@miniTicker',
 };
 
 /** Finnhub uses OANDA forex + stock tickers as proxies */
@@ -37,11 +38,18 @@ export function finnhubToCanonical(streamSymbol: string): string | undefined {
   return finnhubReverse.get(streamSymbol);
 }
 
-/** All symbols the live hub should subscribe to on startup */
+/** Active real-time WebSocket stream symbols (Binance Futures) */
 export const DEFAULT_WS_SYMBOLS = [
   'GC=F',
-  'EURUSD=X',
-  'GBPUSD=X',
-  'GBPJPY=X',
-  'ES=F',
+  'BTC-USD',
 ] as const;
+
+/** Canonical normalization helper for common trader aliases */
+export function normalizeSymbol(symbol: string): string {
+  const upper = symbol.trim().toUpperCase();
+  if (upper === 'XAUUSD' || upper === 'GOLD' || upper === 'XAUUSDT') return 'GC=F';
+  if (upper === 'BTCUSD' || upper === 'BTC' || upper === 'BTCUSDT') return 'BTC-USD';
+  if (upper === 'USOUSD' || upper === 'USOIL' || upper === 'OIL' || upper === 'CRUDE' || upper === 'WTI') return 'CL=F';
+  return symbol;
+}
+

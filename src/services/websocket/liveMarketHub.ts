@@ -35,10 +35,10 @@ class LiveMarketHub {
     const finnhubSymbols = symbols.filter(isFinnhubSymbol);
 
     if (binanceSymbols.length > 0) {
-      const stream = BINANCE_STREAMS[binanceSymbols[0]];
+      const streams = binanceSymbols.map((s) => BINANCE_STREAMS[s]);
       this.binance = new ConnectionManager({
         name: 'binance',
-        url: createBinanceWsUrl(stream),
+        url: createBinanceWsUrl(streams),
         onMessage: (raw) => {
           const tick = parseBinanceMessage(raw);
           if (tick) priceAggregator.ingest(tick);

@@ -165,24 +165,32 @@ export function useStructureAnalysis(symbol = 'GC=F'): UseStructureAnalysisResul
     setIsLoading(true);
     setError(null);
     try {
-      const results: StructureTimeframe[] = [];
+      const [barResults, liq] = await Promise.all([
+        Promise.all(
+          MTF_CONFIG.map(async (cfg) => {
+            const bars = await fetchBars(symbol, cfg.interval, cfg.range);
+            return { cfg, bars };
+          })
+        ),
+        scanStructureLiquidity(symbol),
+      ]);
+
       let profile: SessionProfile | null = null;
-      for (const cfg of MTF_CONFIG) {
-        const bars = await fetchBars(symbol, cfg.interval, cfg.range);
+      const results: StructureTimeframe[] = barResults.map(({ cfg, bars }) => {
         if (cfg.interval === '15m') profile = computeSessionProfile(bars);
-        
         const trend = detectTrend(bars, cfg.lookback);
-        results.push({
+        return {
           tf: cfg.tf,
           label: cfg.label,
           trend,
           structure: structureDescription(symbol, trend, bars),
           status: statusForTrend(trend, cfg.tf),
-        });
-      }
+        };
+      });
+
       setTimeframes(results);
       setSessionProfile(profile);
-      setLiquidity(await scanStructureLiquidity(symbol));
+      setLiquidity(liq);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -229,32 +237,39 @@ export function useCurrencyStrength(): UseCurrencyStrengthResult {
     setIsLoading(true);
     setError(null);
     try {
-      const valid: CurrencyStrength[] = [];
-      for (const { symbol, currency, invert } of CURRENCY_PAIRS) {
-        const bars = await fetchBars(symbol, '1d', '1mo');
-        const last = bars.at(-1);
-        const prev = bars.at(-2);
-        if (!last || !prev) continue;
-        let changeNum = ((last.close - prev.close) / prev.close) * 100;
-        if (invert) changeNum = -changeNum;
+      const pairResults = await Promise.all(
+        CURRENCY_PAIRS.map(async ({ symbol, currency, invert }) => {
+          try {
+            const bars = await fetchBars(symbol, '1d', '1mo');
+            const last = bars.at(-1);
+            const prev = bars.at(-2);
+            if (!last || !prev) return null;
+            let changeNum = ((last.close - prev.close) / prev.close) * 100;
+            if (invert) changeNum = -changeNum;
+            return {
+              symbol: currency,
+              change: `${changeNum >= 0 ? '+' : ''}${changeNum.toFixed(2)}%`,
+              changeNum,
+              direction: changeNum >= 0 ? ('up' as const) : ('down' as const),
+            };
+          } catch {
+            return null;
+          }
+        })
+      );
+
+      const valid = pairResults.filter((r): r is CurrencyStrength => r !== null);
+      if (valid.length > 0) {
+        const usdChange = -(valid.reduce((s, r) => s + r.changeNum, 0) / valid.length);
         valid.push({
-          symbol: currency,
-          change: `${changeNum >= 0 ? '+' : ''}${changeNum.toFixed(2)}%`,
-          changeNum,
-          direction: changeNum >= 0 ? 'up' : 'down',
+          symbol: 'USD',
+          change: `${usdChange >= 0 ? '+' : ''}${usdChange.toFixed(2)}%`,
+          changeNum: usdChange,
+          direction: usdChange >= 0 ? 'up' : 'down',
         });
+        valid.sort((a, b) => b.changeNum - a.changeNum);
+        setCurrencies(valid);
       }
-
-      const usdChange = -(valid.reduce((s, r) => s + r.changeNum, 0) / valid.length);
-      valid.push({
-        symbol: 'USD',
-        change: `${usdChange >= 0 ? '+' : ''}${usdChange.toFixed(2)}%`,
-        changeNum: usdChange,
-        direction: usdChange >= 0 ? 'up' : 'down',
-      });
-
-      valid.sort((a, b) => b.changeNum - a.changeNum);
-      setCurrencies(valid);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {

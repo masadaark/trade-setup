@@ -11,20 +11,28 @@ interface BinanceKline {
   5: string;
 }
 
-/** Free Binance USD-M Futures klines — XAUUSDT is futures-only (not on spot API) */
+const BINANCE_PAIR_MAP: Record<string, string> = {
+  'GC=F': 'XAUUSDT',
+  'XAUUSD': 'XAUUSDT',
+  'BTC-USD': 'BTCUSDT',
+  'BTCUSD': 'BTCUSDT',
+};
+
+/** Free Binance USD-M Futures klines — XAUUSDT & BTCUSDT */
 export async function fetchBinanceBars(
   symbol = 'XAUUSDT',
   interval = '1d',
   limit = 200
 ): Promise<YahooChartBar[]> {
-  const cacheKey = `binance-futures:klines:${symbol}:${interval}:${limit}`;
+  const pair = BINANCE_PAIR_MAP[symbol] ?? symbol;
+  const cacheKey = `binance-futures:klines:${pair}:${interval}:${limit}`;
 
   return cachedFetch(cacheKey, async () => {
-    const params = new URLSearchParams({ symbol, interval, limit: String(limit) });
+    const params = new URLSearchParams({ symbol: pair, interval, limit: String(limit) });
     const res = await enqueue('binance', () =>
       fetch(`/api/binance-futures/fapi/v1/klines?${params}`)
     );
-    if (!res.ok) throw new Error(`Binance klines ${symbol}: ${res.status}`);
+    if (!res.ok) throw new Error(`Binance klines ${pair}: ${res.status}`);
 
     const json = (await res.json()) as BinanceKline[];
     return json.map((k) => ({
@@ -40,5 +48,10 @@ export async function fetchBinanceBars(
 
 /** Map dashboard symbol to Binance pair */
 export function isBinanceRestSymbol(symbol: string): boolean {
-  return symbol === 'GC=F';
+  return symbol in BINANCE_PAIR_MAP;
 }
+
+export function getBinancePair(symbol: string): string {
+  return BINANCE_PAIR_MAP[symbol] ?? 'XAUUSDT';
+}
+

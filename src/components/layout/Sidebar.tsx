@@ -1,4 +1,4 @@
-import { Activity, BarChart2, Cpu, Globe, Settings, ShieldAlert, TrendingUp, Layers } from 'lucide-react';
+import { Activity, BarChart2, Cpu, Globe, Settings, TrendingUp, Layers } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 
@@ -32,12 +32,6 @@ const navItems = [
     icon: Cpu,
     label: 'Algo Metrics',
     desc: 'ATR & VWAP',
-  },
-  {
-    path: '/risk',
-    icon: ShieldAlert,
-    label: 'Risk Gate',
-    desc: 'Position Sizing',
   },
 ];
 

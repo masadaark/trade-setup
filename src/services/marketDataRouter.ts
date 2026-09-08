@@ -15,10 +15,10 @@ import { hasWebSocketSource } from './websocket/symbolMap';
 import type { LiveQuote } from './websocket/types';
 import { cachedFetch } from './cache';
 
-type Interval = '1d' | '1wk' | '1mo' | '1h';
+type Interval = '15m' | '1h' | '1d' | '1wk' | '1mo';
 type Range = '5d' | '1mo' | '3mo' | '6mo' | '1y' | '2y';
 
-const WS_WAIT_MS = 4_000;
+const WS_WAIT_MS = 1_500;
 const HISTORICAL_TTL = 30 * 60 * 1000;
 
 const bootstrapped = new Set<string>();
@@ -124,10 +124,32 @@ export async function getMarketQuoteAndBars(
   interval: Interval = '1d',
   range: Range = '6mo'
 ): Promise<{ quote: YahooQuote; bars: YahooChartBar[] }> {
-  const [bars, quote] = await Promise.all([
-    getMarketBars(symbol, interval, range),
-    getMarketQuote(symbol),
-  ]);
+  const bars = await getMarketBars(symbol, interval, range);
+
+  if (hasWebSocketSource(symbol)) {
+    const live = liveMarketHub.getLiveQuote(symbol);
+    if (live) return { quote: liveToYahooQuote(live), bars };
+  }
+
+  const last = bars.at(-1);
+  const prev = bars.at(-2) ?? last;
+  const price = last?.close ?? 0;
+  const prevClose = prev?.close ?? price;
+  const change = price - prevClose;
+  const changePct = prevClose > 0 ? (change / prevClose) * 100 : 0;
+  const quote: YahooQuote = {
+    symbol,
+    regularMarketPrice: price,
+    regularMarketChange: change,
+    regularMarketChangePercent: changePct,
+    regularMarketPreviousClose: prevClose,
+    regularMarketOpen: last?.open ?? price,
+    regularMarketDayHigh: last?.high ?? price,
+    regularMarketDayLow: last?.low ?? price,
+    fiftyTwoWeekHigh: last?.high ?? price,
+    fiftyTwoWeekLow: last?.low ?? price,
+  };
+
   return { quote, bars };
 }
 

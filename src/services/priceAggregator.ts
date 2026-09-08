@@ -68,8 +68,18 @@ export class PriceAggregator {
 
   getLiveQuote(symbol: string): LiveQuote | null {
     const state = this.states.get(symbol);
-    if (!state) return null;
-    return this.toLiveQuote(symbol, state);
+    if (state) return this.toLiveQuote(symbol, state);
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        const cached = window.sessionStorage.getItem(`live_quote:${symbol}`);
+        if (cached) {
+          return JSON.parse(cached) as LiveQuote;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return null;
   }
 
   subscribe(symbol: string, listener: LiveQuoteListener): () => void {
@@ -123,7 +133,7 @@ export class PriceAggregator {
     if (bars.length === 0) return;
     const last = bars.at(-1)!;
     const prev = bars.at(-2);
-    this.states.set(symbol, {
+    const state: SymbolState = {
       price: last.close,
       open: last.open,
       high: last.high,
@@ -135,7 +145,10 @@ export class PriceAggregator {
       dayOpen: last.open,
       dayHigh: last.high,
       dayLow: last.low,
-    });
+    };
+    this.states.set(symbol, state);
+    const quote = this.toLiveQuote(symbol, state);
+    this.emitQuote(symbol, quote);
   }
 
   private updateBars(tick: PriceTick): void {
@@ -188,6 +201,13 @@ export class PriceAggregator {
   }
 
   private emitQuote(symbol: string, quote: LiveQuote): void {
+    try {
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.setItem(`live_quote:${symbol}`, JSON.stringify(quote));
+      }
+    } catch {
+      // ignore storage quota errors
+    }
     const listeners = this.quoteListeners.get(symbol);
     if (!listeners) return;
     for (const listener of listeners) listener(quote);

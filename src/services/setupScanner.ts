@@ -3,10 +3,12 @@ import { getMarketQuoteAndBars, getMarketBars } from './marketDataRouter';
 import { calcATR, findSwingLevels } from './yahooFinanceApi';
 import { buildTradeSetup, type TradeSetup } from './marketAnalysis';
 
-const SCAN_SYMBOLS = [
+import { normalizeSymbol } from './websocket/symbolMap';
+
+export const SCAN_SYMBOLS = [
   { symbol: 'GC=F', asset: 'XAU/USD (Gold)' },
-  { symbol: 'EURUSD=X', asset: 'EUR/USD' },
-  { symbol: 'GBPJPY=X', asset: 'GBP/JPY' },
+  { symbol: 'BTC-USD', asset: 'BTC/USD (Bitcoin)' },
+  { symbol: 'CL=F', asset: 'USO/USD (Crude Oil)' },
 ] as const;
 
 let inflight: Promise<TradeSetup[]> | null = null;
@@ -19,11 +21,15 @@ export async function scanTradeSetups(): Promise<TradeSetup[]> {
     inflight = (async () => {
       const results: TradeSetup[] = [];
       for (let i = 0; i < SCAN_SYMBOLS.length; i++) {
-        const { symbol, asset } = SCAN_SYMBOLS[i];
-        const { quote, bars } = await getMarketQuoteAndBars(symbol, '1d', '6mo');
-        const price = quote.regularMarketPrice;
-        const setup = buildTradeSetup(symbol, asset, bars, price, `SET-${String(i + 1).padStart(2, '0')}`);
-        if (setup) results.push(setup);
+        try {
+          const { symbol, asset } = SCAN_SYMBOLS[i];
+          const { quote, bars } = await getMarketQuoteAndBars(symbol, '1d', '6mo');
+          const price = quote.regularMarketPrice;
+          const setup = buildTradeSetup(symbol, asset, bars, price, `SET-${String(i + 1).padStart(2, '0')}`);
+          if (setup) results.push(setup);
+        } catch (err) {
+          console.warn(`[Scanner] Skipping ${SCAN_SYMBOLS[i].symbol}:`, err);
+        }
       }
       results.sort((a, b) => b.rr - a.rr);
       return results;
@@ -35,7 +41,8 @@ export async function scanTradeSetups(): Promise<TradeSetup[]> {
   }, 5 * 60 * 1000);
 }
 
-export async function scanStructureLiquidity(symbol = 'GC=F') {
+export async function scanStructureLiquidity(rawSymbol = 'GC=F') {
+  const symbol = normalizeSymbol(rawSymbol);
   return cachedFetch(`structure:liquidity:${symbol}`, async () => {
     const dailyBars = await getMarketBars(symbol, '1d', '6mo');
     const weeklyBars = await getMarketBars(symbol, '1wk', '1y');

@@ -75,14 +75,18 @@ export function useLivePrice(symbol: string): UseLivePriceResult {
     });
 
     if (isWsSymbol) {
-      // WS symbols: wait for stream, REST fallback only after timeout
-      fallbackTimer = setTimeout(() => {
-        if (!liveMarketHub.getLiveQuote(symbol)) {
-          loadRestFallback();
-        } else {
-          setIsLoading(false);
-        }
-      }, 5_000);
+      // WS symbols: wait for stream, REST fallback after 1.5s if stream delayed
+      if (!liveMarketHub.getLiveQuote(symbol)) {
+        fallbackTimer = setTimeout(() => {
+          if (!liveMarketHub.getLiveQuote(symbol)) {
+            loadRestFallback();
+          } else {
+            setIsLoading(false);
+          }
+        }, 1500);
+      } else {
+        setIsLoading(false);
+      }
     } else {
       loadRestFallback();
     }
