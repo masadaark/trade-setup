@@ -9,36 +9,42 @@ description: Analyze market data, formulate actionable trade plans, and answer t
 
 When the user asks questions about trading, market analysis, algorithmic strategies, or asks to formulate a **Trade Plan**, you must strictly utilize the knowledge base located in the `brain/` directory following a structured **4-Tier Decision Hierarchy**.
 
+**Target Assets:** XAUUSD (Gold), BTCUSD (Bitcoin), USOUSD (Crude Oil)
+
 ---
 
 ## 1. Decision Hierarchy for Trade Planning
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ Tier 1: PRIMARY CORES (Dual-Core Execution & Price-Volume Engine)       │
+│ Tier 1: PRIMARY CORES (Dual-Core Execution & Empirical Microstructure)  │
 │                                                                         │
-│   1. brain/trade-setup.md (Strategic Execution Playbook)                │
+│   1. brain/trade-setup.md (Strategic Execution Playbook) [hybrid]       │
 │      • Market Structure (Major/Minor BOS, CHoCH, Inducement)            │
 │      • Retail Traps & Liquidity Sweeps (Equal H/L, Fake Out Zones)      │
 │      • Core Setups: AMD (Manipulation Zone), Clean Traffic, Fail Swing  │
 │      • Execution Trigger: 1-2-3 Entry Confirmation (Break-Retest-Reject)│
-│      • Risk Blueprint: 15/35/50 Rule, Safety SL, TP 70-80%, Port B/C/D  │
+│      • Risk Blueprint: 15/35/50 Rule, Safety SL, TP 70-80%, Port B/C/D │
 │                                                                         │
-│   2. brain/vsa-weis-wyckoff.md (Price Action & Volume Spread Dynamics)  │
+│   2. brain/vsa-weis-wyckoff.md (Price Action & Volume Spread) [hybrid]  │
 │      • Volume Spread Analysis (VSA) & Effort vs Reward Validation       │
 │      • Springs & Upthrusts (Confirming Liquidity Sweeps)                │
 │      • Ice Line & Axis Line geometry                                    │
 │      • Tape Reading & Bar-by-bar Volume Absorption                      │
 │      • Low Volume Test on Retest Phase of 1-2-3 Trigger                 │
+│                                                                         │
+│   3. brain/institutional-microstructure-patterns.md [standalone]         │
+│      • 6 Empirical Patterns with JSON Decision Matrix                   │
+│      • Query by Pattern ID (IMP-VACUUM-01 through IMP-BE-ARMOR-06)      │
 └─────────────────────────────────────────────────────────────────────────┘
                                 ▲
                                 │ Confluence & Confirmation
 ┌───────────────────────────────┴─────────────────────────────────────────┐
 │ Tier 2: SECONDARY CONFLUENCE (Quantitative & Institutional Edge)        │
-│   1. brain/cot-intelligence.md                                          │
+│   1. brain/cot-intelligence.md [hybrid]                                 │
 │      • Commercial Hedgers (Smart Money) vs Speculators                  │
 │      • COT Index (36M / 13W), 40-Point Surge, Commercial Capitulation   │
-│   2. brain/algorithmic-strategy.md                                      │
+│   2. brain/algorithmic-strategy.md [standalone]                         │
 │      • Mean Reversion & Stationarity (ADF Test, Hurst Exponent < 0.5)   │
 │      • Half-Life of Decay (Holding Period Optimization)                 │
 │      • Cointegration & Bias Prevention (Look-Ahead, Data-Snooping)      │
@@ -46,16 +52,20 @@ When the user asks questions about trading, market analysis, algorithmic strateg
                                 ▲
                                 │ Value Area & Auction Context
 ┌───────────────────────────────┴─────────────────────────────────────────┐
-│ Tier 3: TERTIARY STRUCTURE (Auction & Value Area Profile)               │
-│   • brain/auction-market-theory.md (Day Type, IB Range, 80% Rule)       │
-│   • brain/market-profile.md (VAH, VAL, POC, Single Prints, Excess)      │
+│ Tier 3: TERTIARY STRUCTURE (Unified Auction & Value Area Profile)        │
+│   • brain/auction-and-profile.md [hybrid]                               │
+│     - Auction Process, Day Types, Opening Types, 80% Rule               │
+│     - Value Area (VAH, VAL, POC), TPO, Single Prints, Excess            │
+│     - Initiative vs Responsive Activity                                 │
 └─────────────────────────────────────────────────────────────────────────┘
                                 ▲
                                 │ Macro Environment
 ┌───────────────────────────────┴─────────────────────────────────────────┐
 │ Tier 4: CONTEXTUAL MACRO (Macroeconomic Background)                     │
-│   • brain/global-macro.md (Policy rates, inflation, macro regimes)      │
-│   • brain/intermarket.md (Gold-USD inverse, 10Y Yields, Oil dynamics)   │
+│   • brain/global-macro.md [hybrid]                                      │
+│     - Policy rates, inflation, macro regimes                            │
+│   • brain/intermarket.md [hybrid]                                       │
+│     - Gold-USD inverse, 10Y Yields, Oil dynamics                        │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -95,29 +105,37 @@ When asked to create, plan, or evaluate a trade setup, ALWAYS proceed in this or
    - **`brain/algorithmic-strategy.md`**: Is the move mean-reverting (Hurst < 0.5) or trending? What does the half-life suggest for holding period? Are execution microstructure and slippage accounted for?
 
 3. **Step 3: Consult Tier 3 & Tier 4 (If additional confirmation needed)**:
-   - Check Value Area (VAH/VAL/POC), Initial Balance extension, or Gold-USD / Yield divergence.
+   - Check Value Area (VAH/VAL/POC), Day Type, 80% Rule, Initial Balance extension, or Gold-USD / Yield divergence via `brain/auction-and-profile.md`.
 
 ---
 
 ### Mode B: Direct Concept Lookup (ตอบคำถามเฉพาะหัวข้อ)
 If the user asks about a specific concept or tool, route directly to the target file using the table below:
 
-| Question Topic | Target File | Tier |
-|---|---|---|
-| SMC, High Elite FX, AMD, 1-2-3 Entry, Liquidity Sweeps, Port B/C/D | `brain/trade-setup.md` | **Tier 1** |
-| Weis-Wyckoff, VSA, Springs, Upthrusts, Ice Line, Effort vs Reward, Bar Reading | `brain/vsa-weis-wyckoff.md` | **Tier 1** |
-| COT Report, CFTC, Commercial Hedgers, Net Positions, COT Index | `brain/cot-intelligence.md` | **Tier 2** |
-| Backtesting, Mean Reversion, Stationarity, ADF, Hurst, Half-Life, Cointegration | `brain/algorithmic-strategy.md` | **Tier 2** |
-| Value Area, VAH, VAL, POC, TPO, Initial Balance, Steidlmayer | `brain/market-profile.md` | **Tier 3** |
-| Auction Process, Day Types (Normal, Trend, Double Dist), 80% Rule | `brain/auction-market-theory.md` | **Tier 3** |
-| Central Banks, Policy Rates, Macro Regimes, Inflation/GDP | `brain/global-macro.md` | **Tier 4** |
-| Gold-USD Inverse, US 10Y Yields, Oil Correlations, Carry Trade | `brain/intermarket.md` | **Tier 4** |
+| Question Topic | Target File | Tier | Reading Mode |
+|---|---|---|---|
+| SMC, High Elite FX, AMD, 1-2-3 Entry, Liquidity Sweeps, Port B/C/D | `brain/trade-setup.md` | **Tier 1** | `hybrid` |
+| Weis-Wyckoff, VSA, Springs, Upthrusts, Ice Line, Effort vs Reward, Bar Reading | `brain/vsa-weis-wyckoff.md` | **Tier 1** | `hybrid` |
+| Liquidity Vacuum, Bear Trap, Double Fakeout, Waterfall Climax, Breakeven Armor, Empirical Patterns | `brain/institutional-microstructure-patterns.md` | **Tier 1** | `standalone` |
+| COT Report, CFTC, Commercial Hedgers, Net Positions, COT Index | `brain/cot-intelligence.md` | **Tier 2** | `hybrid` |
+| Backtesting, Mean Reversion, Stationarity, ADF, Hurst, Half-Life, Cointegration | `brain/algorithmic-strategy.md` | **Tier 2** | `standalone` |
+| Value Area, VAH, VAL, POC, TPO, Initial Balance, Steidlmayer, Day Types, 80% Rule, Auction Process, Open Types | `brain/auction-and-profile.md` | **Tier 3** | `hybrid` |
+| Central Banks, Policy Rates, Macro Regimes, Inflation/GDP | `brain/global-macro.md` | **Tier 4** | `hybrid` |
+| Gold-USD Inverse, US 10Y Yields, Oil Correlations, Carry Trade | `brain/intermarket.md` | **Tier 4** | `hybrid` |
 
 ---
 
-## 3. Token Budget & Performance Rules
+## 3. Reading Mode & Token Budget Rules
 
+### Reading Mode Guide
+Each brain document has a `reading_mode` in its YAML frontmatter:
+- **`sequential`**: Read sections in order — each builds on the previous.
+- **`standalone`**: Each section is independent — use grep to find and read only the relevant section.
+- **`hybrid`**: Check `sequential_sections` and `standalone_sections` in frontmatter to decide.
+
+### Token Budget Rules
 - **Do NOT read all files**: Read a maximum of 1–3 files per query.
+- **Use Reading Mode**: For `standalone` files, use grep to locate specific terms rather than reading the entire document.
 - **Use Grep for Targeted Lookups**: When locating specific terms (e.g., "ADR", "Half-life", "Spring", "40-point surge"), use grep rather than reading whole documents.
 - **Concise, Structured Output**: Present trade plans and explanations in crisp markdown with bullet points, entry levels, invalidation points, and target zones.
 
